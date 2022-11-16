@@ -1,0 +1,133 @@
+---
+title: "savingSessions: tweet analysis"
+author: "Ben Anderson (@dataknut)"
+date: 'Last run at: `r Sys.time()`'
+format: 
+  html:
+    self-contained: true
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+editor: visual
+---
+
+# Background
+
+UK demand response experiments by NG-ESO and retailers such as [\@OctopusEnergy](https://twitter.com/SavingSessions)
+
+Attempt to do some analysis of #savingSession(s) tweets.
+
+# Code setup
+
+Part of <https://github.com/dataknut/savingSessions>
+
+```{r}
+#| label: codeSetup
+#| warning: false
+
+library(data.table)
+library(hashTagR)
+library(ggplot2)
+library(lubridate)
+library(readr)
+library(rtweet)
+
+hashtags <- c("savingSession", "savingSessions")
+searchString <- hashTagR::createSearchFromTags(hashtags) # convert to rtweet search string
+
+searchString <- "#SavingSession OR #SavingSessions" # edit to suit
+
+dataPath <- "~/Dropbox/data/twitter/" # edit to suit
+```
+
+# Getting data
+
+Grab the most recent set of tweets that mention `r searchString` using the [rtweet::search_tweet()](https://docs.ropensci.org/rtweet/reference/search_tweets.html) function and merge with any we may already have downloaded.
+
+```{r}
+#| label: getData
+#| warning: false
+
+if(dir.exists(dataPath)){
+  ofile <- path.expand(paste0(dataPath, "tw_", searchString,"_", lubridate::now(),".csv"))
+  tweetsDT <- hashTagR::getTweets(searchString, n = 20000)
+  readr::write_csv(tweetsDT, file = ofile) # data.table breaks here
+  message("Retreived ", nrow(tweetsDT), " tweets and saved them to ", ofile)
+} else {
+  message(dataPath, " not found!")
+}
+
+# now load all the tweet files we have matching that searchString
+
+dt <- hashTagR::loadTweets(path = dataPath, pattern = searchString)
+
+u_dt <- hashTagR::processTweets(dt)
+```
+
+That produced a data file of `r nrow(u_dt)` tweets.
+
+# Analysis
+
+## Tweet time line
+
+@fig-timeLine shows the timing of tweets by hour.
+
+```{r}
+#| echo: false
+#| label: fig-timeLine
+#| fig-cap: "Tweets over time"
+
+plotDT <- u_dt[, .(nObs = .N), keyby = .(Time = ba_created_at_dateHour)]
+
+periodAlpha <- 0.3 #  shaded rects on plots
+periodFill <- "grey50"
+ymax <- max(plotDT$nObs)
+ymin <- min(plotDT$nObs)
+
+sessionDateStart <- lubridate::as_datetime("2022-11-15 17:00:00") # the half-hour it starts
+sessionDateEnd <- lubridate::as_datetime("2022-11-15 18:00:00") # 
+
+# plot over time
+
+myCaption <- "Data: twitter API via @mkearney's rtweet package\nPlot by @dataknut\nSaving Session period marked as grey box"
+ggplot2::ggplot(plotDT, aes(x = Time, y = nObs)) + 
+                  geom_point() +
+  annotate("rect", xmin = sessionDateStart,
+           xmax = sessionDateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+  labs(caption = myCaption)
+```
+
+@fig-cumulativeTimeLine shows cumulative tweets by hour.
+
+```{r}
+#| echo: false
+#| label: fig-cumulativeTimeLine
+#| fig-cap: "Cumulative number of tweets over time"
+
+
+plotDT[, cumSum := cumsum(nObs)]
+ymax <- max(plotDT$cumSum)
+ymin <- min(plotDT$cumSum)
+ggplot2::ggplot(plotDT, aes(x = Time, y = cumSum)) + 
+  geom_point() +
+  geom_line() +
+  annotate("rect", xmin = sessionDateStart,
+           xmax = sessionDateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+  labs(caption = myCaption)
+```
+
+# Sentiment analysis
+
+Yeah...
+
+```{r}
+#| label: theEnd
+```
