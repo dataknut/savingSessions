@@ -25,6 +25,8 @@ Attempt to do some analysis of #savingSession(s) tweets.
 
 Part of <https://github.com/dataknut/savingSessions>
 
+Makes use of <https://github.com/dataknut/hashTagR>, a DIY wrapper for the [rtweet](https://docs.ropensci.org/rtweet) rstats package.
+
 ```{r}
 #| label: codeSetup
 #| warning: false
@@ -125,6 +127,10 @@ ggplot2::ggplot(plotDT, aes(x = Time, y = cumSum)) +
 ```
 
 # Sentiment analysis
+
+Yeah...
+
+# Content analysis
 
 Yeah...
 
