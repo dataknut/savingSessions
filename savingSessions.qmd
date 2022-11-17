@@ -54,8 +54,10 @@ Grab the most recent set of tweets that mention `r searchString` using the [rtwe
 #| label: getData
 #| warning: false
 
+now <- lubridate::now()
+
 if(dir.exists(dataPath)){
-  ofile <- path.expand(paste0(dataPath, "tw_", searchString,"_", lubridate::now(),".csv"))
+  ofile <- path.expand(paste0(dataPath, "tw_", searchString,"_",now,".csv"))
   tweetsDT <- hashTagR::getTweets(searchString, n = 20000)
   readr::write_csv(tweetsDT, file = ofile) # data.table breaks here
   message("Retreived ", nrow(tweetsDT), " tweets and saved them to ", ofile)
