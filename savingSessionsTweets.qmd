@@ -74,6 +74,10 @@ u_dt <- hashTagR::processTweets(dt)
 
 That produced a data file of `r nrow(u_dt)` tweets.
 
+We do NOT store the tweets in the repo for both [ethical](https://blogs.lse.ac.uk/impactofsocialsciences/2015/09/28/challenges-of-using-twitter-as-a-data-source-resources/) and practical reasons...
+
+Note also that we may not be collecting the complete dataset of hashtagged tweets due to the [intricacies of the twitter API](https://www.demos.co.uk/files/Road_to_representivity_final.pdf?1441811336).
+
 # Analysis
 
 ## Tweet time line
