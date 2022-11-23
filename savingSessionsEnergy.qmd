@@ -1,0 +1,184 @@
+---
+title: "savingSessions: energy analysis"
+author: "Ben Anderson (@dataknut)"
+date: 'Last run at: `r Sys.time()`'
+format: 
+  html:
+    self-contained: true
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+editor: visual
+---
+
+# Background
+
+UK demand response experiments by NG-ESO and retailers such as [\@OctopusEnergy](https://twitter.com/SavingSessions)
+
+How big a 'dent' in demand did they make?
+
+# Code setup
+
+Part of <https://github.com/dataknut/savingSessions>
+
+```{r}
+#| label: codeSetup
+#| warning: false
+
+library(data.table)
+library(dkUtils)
+library(ggplot2)
+library(hms)
+library(lubridate)
+
+```
+
+# Getting data
+
+Grab the most NG-ESO 'gen mix' [data](https://data.nationalgrideso.com/carbon-intensity1/historic-generation-mix).
+
+> Should probably use the [demand data](https://data.nationalgrideso.com/demand/historic-demand-data) instead as it includes embedded wind & solar.
+
+```{r}
+#| label: getData
+#| warning: false
+
+esoF <- here::here("data", "latest_df_fuel_ckan.csv")
+if(file.exists(paste0(esoF, ".gz"))){
+  message("We already have a version saved to: ", paste0(esoF, ".gz"))
+  message("Loading it...")
+  ngeso_dt_orig <- data.table::fread(paste0(esoF, ".gz"))
+} else {
+  message("We don't already have a version, downloading and saving to: ", esoF)
+  ngeso_dt_orig <- data.table::fread("https://data.nationalgrideso.com/backend/dataset/88313ae5-94e4-4ddc-a790-593554d8c6b9/resource/f93d1835-75bc-43e5-84ad-12472b180a98/download/df_fuel_ckan.csv")
+  # nice dateTime
+  ngeso_dt_orig[, dv_start := lubridate::as_datetime(DATETIME)]
+  data.table::fwrite(ngeso_dt_orig, esoF)
+  dkUtils::gzipIt(esoF)
+  data.table::fwrite(ngeso_dt_orig, "~/Dropbox/data/UK_NGESO/genMix/latest_df_fuel_ckan.csv") # save locally for future re-use
+  dkUtils::gzipIt("~/Dropbox/data/UK_NGESO/genMix/latest_df_fuel_ckan.csv")
+}
+
+# if older than 1 day, reload
+today <- lubridate::today()
+lastNGESO <- as.Date(max(ngeso_dt_orig$dv_start))
+
+if(today - lastNGESO > 1) {
+  # old data, reload
+  message("But the version we have dates from ", lastNGESO, " (",today - lastNGESO ," days ago), downloading latest...")
+  ngeso_dt_orig <- data.table::fread("https://data.nationalgrideso.com/backend/dataset/88313ae5-94e4-4ddc-a790-593554d8c6b9/resource/f93d1835-75bc-43e5-84ad-12472b180a98/download/df_fuel_ckan.csv")
+  # nice dateTime
+  ngeso_dt_orig[, dv_start := lubridate::as_datetime(DATETIME)]
+  data.table::fwrite(ngeso_dt_orig, esoF)
+  dkUtils::gzipIt(esoF)
+}
+
+# we think renewable is wind + solar, low carbon includes nuclear
+```
+
+Select the dates and periods we need. GENERATION is in MW. It has some exclusions, its just an indicator.
+
+```{r}
+#|label: selectSessionDates
+
+session1DateStart <- lubridate::as_datetime("2022-11-15 17:00:00") # the half-hour it starts
+session1DateEnd <- lubridate::as_datetime("2022-11-15 18:00:00") # 
+
+session2DateStart <- lubridate::as_datetime("2022-11-22 17:30:00") # the half-hour it starts
+session2DateEnd <- lubridate::as_datetime("2022-11-22 18:30:00") # 
+```
+
+1.  Session 1: `r session1DateStart` to `r session1DateEnd`
+
+2.  Session 2: `r session2DateStart` to `r session2DateEnd`
+
+```{r}
+session1_dt <- ngeso_dt_orig[dv_start >= session1DateStart & 
+                               dv_start < session1DateEnd]
+session2_dt <- ngeso_dt_orig[dv_start >= session2DateStart & 
+                               dv_start < session2DateEnd]
+
+message("Session 1:")
+head(session1_dt[, .(dv_start, GENERATION)])
+
+message("Session 2:")
+head(session2_dt[, .(dv_start, GENERATION)])
+
+ngeso_dt_orig[, dv_date := lubridate::date(dv_start)]
+sessions_dt <- ngeso_dt_orig[dv_date == lubridate::date(session1DateStart) |
+                               dv_date == lubridate::date(session2DateStart)]
+
+sessions_dt[, hms := hms::as_hms(dv_start)]
+
+periodAlpha <- 0.3 #  shaded rects on plots
+periodFill <- "grey50"
+plotDT <- sessions_dt[dv_date == lubridate::date(session1DateStart)]
+                      
+ymax <- max(plotDT$GENERATION/1000)
+ymin <- 0
+
+psess1 <- ggplot2::ggplot(plotDT, 
+                          aes(x = hms, y = GENERATION/1000)) +
+  geom_line() +
+  ylim(0, NA) +
+  facet_grid(. ~ dv_date) +
+    annotate("rect", xmin = hms::as_hms(session1DateStart),
+           xmax = hms::as_hms(session1DateEnd),
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+  labs(x = "Time of day",
+       y = "GENERATION (GW)",
+       caption = "Session 1: NG-ESO Generation Mix data (saving session marked)")
+psess1
+
+plotDT <- sessions_dt[dv_date == lubridate::date(session2DateStart)]
+                      
+ymax <- max(plotDT$GENERATION/1000)
+ymin <- 0
+psess2 <- ggplot2::ggplot(plotDT, 
+                          aes(x = hms, y = GENERATION/1000)) +
+  geom_line() +
+  ylim(0, NA) +
+  facet_grid(. ~ dv_date) +
+    annotate("rect", xmin = hms::as_hms(session2DateStart),
+           xmax = hms::as_hms(session2DateEnd),
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+   labs(x = "Time of day",
+       y = "GENERATION (GW)",
+       caption = "Session 2: NG-ESO Generation Mix data (saving session marked)")
+psess2
+```
+
+# Analysis
+
+## Session 1
+
+According to <https://energycentral.com/news/octopus-energy-provide-108mw-grid-flexibility-first-%E2%80%98saving-session%E2%80%99>:
+
+"*Over 200,000 households reduced their energy demand by 108MW collectively, the same as a gas power station can generate in an hour. If replicated by all UK energy suppliers, this would be over 1GW*."
+
+```{r}
+session1_mean_mw <- mean(session1_dt$GENERATION)
+session1_mean_gw <- session1_mean_mw/1000
+```
+
+So the Octopus customers' 108 MW was `r round(100*(108/session1_mean_mw),3)` % of mean generation at that time.
+
+108 MW over 200,000 customers is `r 108/200000` MW per household or, more sensibly, `r 108/200` kW per household.
+
+If all \~20 million households did this it would be `r (108/200)*20000000` kW. That's actually `r (108/200)*20` GW, no?
+
+That would be `r round((100*(108/200)*20)/session1_mean_gw)` % of generation.
+
+## Session 2
+
+# The end
+
+```{r}
+#| label: theEnd
+```
