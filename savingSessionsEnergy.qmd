@@ -171,9 +171,18 @@ So the Octopus customers' 108 MW was `r round(100*(108/session1_mean_mw),3)` % o
 
 108 MW over 200,000 customers is `r 108/200000` MW per household or, more sensibly, `r 108/200` kW per household.
 
-If all [~28 million households](https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2021) in the UK did this it would be `r (108/200)*28000000` kW. That's actually `r (108/200)*28` GW, no?
+```{r}
+#| label: scaled
+scaled_kW <- (108/200)*28000000
+scaled_GW <- ((108/200)*28000000)/1000000
 
-Which would be `r round((100*(108/280)*28)/session1_mean_gw,2)` % of generation.
+scaled_GW_pc <- 100*(scaled_GW/session1_mean_gw)
+```
+
+If all [~28 million households](https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2021) in the UK did this it would be `r scaled_kW` kW. That's actually `r scaled_GW` GW, no?
+
+
+Which would be `r round(scaled_GW_pc,2)` % of generation.
 
 > Although the NG-ESO data may not include Northern Ireland so we should remove NI households from ther scaling etc etc
 
