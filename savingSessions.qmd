@@ -92,16 +92,23 @@ periodFill <- "grey50"
 ymax <- max(plotDT$nObs)
 ymin <- min(plotDT$nObs)
 
-sessionDateStart <- lubridate::as_datetime("2022-11-15 17:00:00") # the half-hour it starts
-sessionDateEnd <- lubridate::as_datetime("2022-11-15 18:00:00") # 
+session1DateStart <- lubridate::as_datetime("2022-11-15 17:00:00") # the half-hour it starts
+session1DateEnd <- lubridate::as_datetime("2022-11-15 18:00:00") # 
+
+session2DateStart <- lubridate::as_datetime("2022-11-22 17:30:00") # the half-hour it starts
+session2DateEnd <- lubridate::as_datetime("2022-11-22 18:30:00") # 
 
 # plot over time
 
-myCaption <- "Data: twitter API via @mkearney's rtweet package\nPlot by @dataknut\nSaving Session period marked as grey box"
+myCaption <- "Data: twitter API via @mkearney's rtweet package\nPlot by @dataknut\nSaving Session period(s) marked as grey box"
 ggplot2::ggplot(plotDT, aes(x = Time, y = nObs)) + 
                   geom_point() +
-  annotate("rect", xmin = sessionDateStart,
-           xmax = sessionDateEnd,
+  annotate("rect", xmin = session1DateStart,
+           xmax = session1DateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+  annotate("rect", xmin = session2DateStart,
+           xmax = session2DateEnd,
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
   labs(caption = myCaption)
@@ -121,12 +128,18 @@ ymin <- min(plotDT$cumSum)
 ggplot2::ggplot(plotDT, aes(x = Time, y = cumSum)) + 
   geom_point() +
   geom_line() +
-  annotate("rect", xmin = sessionDateStart,
-           xmax = sessionDateEnd,
+  annotate("rect", xmin = session1DateStart,
+           xmax = session1DateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+    annotate("rect", xmin = session2DateStart,
+           xmax = session2DateEnd,
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
   labs(caption = myCaption)
 ```
+
+We're not seeing the kind of uptick in tweets for Session 2 that we saw for Session 1...
 
 # Sentiment analysis
 
