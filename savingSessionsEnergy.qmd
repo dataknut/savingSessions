@@ -171,9 +171,9 @@ So the Octopus customers' 108 MW was `r round(100*(108/session1_mean_mw),3)` % o
 
 108 MW over 200,000 customers is `r 108/200000` MW per household or, more sensibly, `r 108/200` kW per household.
 
-If all \~20 million households did this it would be `r (108/200)*20000000` kW. That's actually `r (108/200)*20` GW, no?
+If all ~20 million households did this it would be `r (108/200)*20000000` kW. That's actually `r (108/200)*20` GW, no?
 
-That would be `r round((100*(108/200)*20)/session1_mean_gw)` % of generation.
+Which would be `r round((100*(108/200)*20)/session1_mean_gw)` % of generation.
 
 ## Session 2
 
