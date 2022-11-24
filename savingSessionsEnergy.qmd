@@ -160,31 +160,42 @@ psess2
 
 According to <https://energycentral.com/news/octopus-energy-provide-108mw-grid-flexibility-first-%E2%80%98saving-session%E2%80%99>:
 
-"*Over 200,000 households reduced their energy demand by 108MW collectively, the same as a gas power station can generate in an hour. If replicated by all UK energy suppliers, this would be over 1GW*."
+>"Over 200,000 households reduced their energy demand by 108MW collectively, the same as a gas power station can generate in an hour. If replicated by all UK energy suppliers, this would be over 1GW."
+
+But <https://www.current-news.co.uk/news/octopus-energy-customers-provide-108mw-of-flexibility-during-first-saving-session> quotes Octopus as actually saying: 
+
+>"if the program was scaled to all electric smart meter customers with all supplier[s] in Great Britain, it could create over 1GW of flexible energy load"
+
 
 ```{r}
 session1_mean_mw <- mean(session1_dt$GENERATION)
 session1_mean_gw <- session1_mean_mw/1000
-```
 
-So the Octopus customers' 108 MW was `r round(100*(108/session1_mean_mw),3)` % of mean generation at that time.
-
-108 MW over 200,000 customers is `r 108/200000` MW per household or, more sensibly, `r 108/200` kW per household.
-
-```{r}
-#| label: scaled
 scaled_kW <- (108/200)*28000000
 scaled_GW <- ((108/200)*28000000)/1000000
 
 scaled_GW_pc <- 100*(scaled_GW/session1_mean_gw)
+
+gb_smartMeters <- 14000000
+mean_kW_per_participant <- 108/200
+scaled_GB_smart_meters_GW_pc <- 100*((gb_smartMeters*mean_kW_per_participant)/1000000)/session1_mean_gw
 ```
 
-If all [~28 million households](https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2021) in the UK did this it would be `r scaled_kW` kW. That's actually `r scaled_GW` GW, no?
+Octopus customers' 108 MW was `r round(100*(108/session1_mean_mw),3)` % of mean GB generation (`r session1_mean_gw` GW) over the hour of the session (see NG-ESO data above).
+
+108 MW over 200,000 customers is `r 108/200000` MW per household or, more sensibly, `r mean_kW_per_participant` kW per household. A pretty reasonable reduction.
+
+But if 200,000 produced a 108 MW power reduction (`r mean_kW_per_participant` kW per household ), the 1 GW estimate implies we only have `r prettyNum(1000000/mean_kW_per_participant, big.mark = ",")` GB households with a smart meter. Really? Or did they mean all suppliers taking part in the scheme?
+
+Anyway, the latest data has 14 million domestic eletricity smart meters as of [Q1 2022](https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1099629/Q2_2022_Smart_Meters_Statistics_Report.pdf) - 45% of all domestic meters.
 
 
-Which would be `r round(scaled_GW_pc,2)` % of generation.
+So:
 
-> Although the NG-ESO data may not include Northern Ireland so we should remove NI households from ther scaling etc etc
+  * If all [~28 million households](https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2021) in the UK did this it would be `r scaled_kW` kW. That's `r scaled_GW` GW...
+  * If we reduce ambition a bit and assume that only the 14 million domestic GB customers with a smart meter as of Q2 2022 did this then that would provide `r (gb_smartMeters*mean_kW_per_participant)/1000000` GW. Which would be `r round(scaled_GB_smart_meters_GW_pc,2)` % of generation. Not bad aye?
+
+The trouble is... these are octopus customers self-selecting into a trial. You just have to [read the tweets](https://twitter.com/SavingSessions) to see that there are households with installed batteries, pausable heat pumps in well-insulated homes and EV V2G. At what point will we all be similarly equipped?
 
 ## Session 2
 

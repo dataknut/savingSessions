@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ben Anderson (@dataknut)">
-<meta name="dcterms.date" content="2022-11-23">
+<meta name="dcterms.date" content="2022-11-24">
 
 <title>savingSessions: energy analysis</title>
 <style>
@@ -2569,7 +2569,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 23, 2022</p>
+      <p class="date">November 24, 2022</p>
     </div>
   </div>
     
@@ -2631,20 +2631,26 @@ vertical-align: -.125em;
 <section id="session-1" class="level2" data-number="4.1">
 <h2 data-number="4.1" class="anchored" data-anchor-id="session-1"><span class="header-section-number">4.1</span> Session 1</h2>
 <p>According to <a href="https://energycentral.com/news/octopus-energy-provide-108mw-grid-flexibility-first-%E2%80%98saving-session%E2%80%99" class="uri">https://energycentral.com/news/octopus-energy-provide-108mw-grid-flexibility-first-%E2%80%98saving-session%E2%80%99</a>:</p>
-<p>“<em>Over 200,000 households reduced their energy demand by 108MW collectively, the same as a gas power station can generate in an hour. If replicated by all UK energy suppliers, this would be over 1GW</em>.”</p>
-<div class="cell">
-
-</div>
-<p>So the Octopus customers’ 108 MW was 0.252 % of mean generation at that time.</p>
-<p>108 MW over 200,000 customers is 5.4^{-4} MW per household or, more sensibly, 0.54 kW per household.</p>
-<div class="cell">
-
-</div>
-<p>If all <a href="https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2021">~28 million households</a> in the UK did this it would be 1.512^{7} kW. That’s actually 15.12 GW, no?</p>
-<p>Which would be 35.3 % of generation.</p>
 <blockquote class="blockquote">
-<p>Although the NG-ESO data may not include Northern Ireland so we should remove NI households from ther scaling etc etc</p>
+<p>“Over 200,000 households reduced their energy demand by 108MW collectively, the same as a gas power station can generate in an hour. If replicated by all UK energy suppliers, this would be over 1GW.”</p>
 </blockquote>
+<p>But <a href="https://www.current-news.co.uk/news/octopus-energy-customers-provide-108mw-of-flexibility-during-first-saving-session" class="uri">https://www.current-news.co.uk/news/octopus-energy-customers-provide-108mw-of-flexibility-during-first-saving-session</a> quotes Octopus as actually saying:</p>
+<blockquote class="blockquote">
+<p>“if the program was scaled to all electric smart meter customers with all supplier[s] in Great Britain, it could create over 1GW of flexible energy load”</p>
+</blockquote>
+<div class="cell">
+
+</div>
+<p>Octopus customers’ 108 MW was 0.252 % of mean GB generation (42.8305 GW) over the hour of the session (see NG-ESO data above).</p>
+<p>108 MW over 200,000 customers is 5.4^{-4} MW per household or, more sensibly, 0.54 kW per household. A pretty reasonable reduction.</p>
+<p>But if 200,000 produced a 108 MW power reduction (0.54 kW per household ), the 1 GW estimate implies we only have 1,851,852 GB households with a smart meter. Really? Or did they mean all suppliers taking part in the scheme?</p>
+<p>Anyway, the latest data has 14 million domestic eletricity smart meters as of <a href="https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1099629/Q2_2022_Smart_Meters_Statistics_Report.pdf">Q1 2022</a> - 45% of all domestic meters.</p>
+<p>So:</p>
+<ul>
+<li>If all <a href="https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2021">~28 million households</a> in the UK did this it would be 1.512^{7} kW. That’s 15.12 GW…</li>
+<li>If we reduce ambition a bit and assume that only the 14 million domestic GB customers with a smart meter as of Q2 2022 did this then that would provide 7.56 GW. Which would be 17.65 % of generation. Not bad aye?</li>
+</ul>
+<p>The trouble is… these are octopus customers self-selecting into a trial. You just have to <a href="https://twitter.com/SavingSessions">read the tweets</a> to see that there are households with installed batteries, pausable heat pumps in well-insulated homes and EV V2G. At what point will we all be similarly equipped?</p>
 </section>
 <section id="session-2" class="level2" data-number="4.2">
 <h2 data-number="4.2" class="anchored" data-anchor-id="session-2"><span class="header-section-number">4.2</span> Session 2</h2>
