@@ -38,17 +38,69 @@ library(lubridate)
 library(readr)
 library(rtweet)
 
-hashtags <- c("savingSession", "savingSessions")
+hashtags <- c("savingSession", "savingSessions", "savingsession") # fairly sure it's case insensitive
 searchString <- hashTagR::createSearchFromTags(hashtags) # convert to rtweet search string
 
-searchString <- "#SavingSession OR #SavingSessions" # edit to suit
+#searchString <- "#SavingSession OR #SavingSessions" # edit to suit
 
-dataPath <- "~/Dropbox/data/twitter/" # edit to suit
+dataPath <- "~/Dropbox/data/twitter/savingSessions/" # edit to suit
+
+session1DateStart <- lubridate::as_datetime("2022-11-15 17:00:00") # the half-hour it starts
+session1DateEnd <- lubridate::as_datetime("2022-11-15 18:00:00") # 
+
+session2DateStart <- lubridate::as_datetime("2022-11-22 17:30:00") # the half-hour it starts
+session2DateEnd <- lubridate::as_datetime("2022-11-22 18:30:00") # 
+
+
+session3DateStart <- lubridate::as_datetime("2022-11-30 17:30:00") # the half-hour it starts
+session3DateEnd <- lubridate::as_datetime("2022-11-30 18:30:00") # 
+
+
+session4DateStart <- lubridate::as_datetime("2022-12-01 17:00:00") # the half-hour it starts
+session4DateEnd <- lubridate::as_datetime("2022-12-01 18:00:00") # 
+
+# functions ----
+
+add_sessionDate <- function(p){
+  # add session dates to plot
+  p <- p +
+  annotate("rect", xmin = session1DateStart,
+           xmax = session1DateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+    annotate("text", x = session1DateStart-(24*60*60), 
+             y = ymax*0.9, label = paste0("Session 1\n",
+                                          lubridate::as_date(session1DateStart))) + 
+  annotate("rect", xmin = session2DateStart,
+           xmax = session2DateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+        annotate("text", x = session2DateStart-(24*60*60), 
+             y = ymax*0.9, label = paste0("Session 2\n",
+                                          lubridate::as_date(session2DateStart))) + 
+  annotate("rect", xmin = session3DateStart,
+           xmax = session3DateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+        annotate("text", x = session3DateStart-(24*60*60), 
+             y = ymax*0.9, label = paste0("Session 3\n",
+                                          lubridate::as_date(session3DateStart)))  +
+    annotate("rect", xmin = session4DateStart,
+           xmax = session4DateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+        annotate("text", x = session4DateStart-(24*60*60), 
+             y = ymax*0.8, label = paste0("Session 4\n",
+                                          lubridate::as_date(session4DateStart)))
+  return(p)
+}
 ```
 
 # Getting data
 
 Grab the most recent set of tweets that mention `r searchString` using the [rtweet::search_tweet()](https://docs.ropensci.org/rtweet/reference/search_tweets.html) function and merge with any we may already have downloaded.
+
+Note that tweets do not seem to be available after \~ 14 days via the API used by rtweet. Best to keep refreshing the data every week...
 
 ```{r}
 #| label: getData
@@ -57,17 +109,17 @@ Grab the most recent set of tweets that mention `r searchString` using the [rtwe
 now <- lubridate::now()
 
 if(dir.exists(dataPath)){
-  ofile <- path.expand(paste0(dataPath, "tw_", searchString,"_",now,".csv"))
+  ofile <- path.expand(paste0(dataPath, "tw_",now,".csv"))
   tweetsDT <- hashTagR::getTweets(searchString, n = 20000)
   readr::write_csv(tweetsDT, file = ofile) # data.table breaks here
-  message("Retreived ", nrow(tweetsDT), " tweets and saved them to ", ofile)
+  message("Retrieved ", nrow(tweetsDT), " tweets and saved them to ", ofile)
 } else {
   message(dataPath, " not found!")
 }
 
 # now load all the tweet files we have matching that searchString
 
-dt <- hashTagR::loadTweets(path = dataPath, pattern = searchString)
+dt <- hashTagR::loadTweets(path = dataPath, pattern = "*.csv")
 
 u_dt <- hashTagR::processTweets(dt)
 ```
@@ -96,26 +148,14 @@ periodFill <- "grey50"
 ymax <- max(plotDT$nObs)
 ymin <- min(plotDT$nObs)
 
-session1DateStart <- lubridate::as_datetime("2022-11-15 17:00:00") # the half-hour it starts
-session1DateEnd <- lubridate::as_datetime("2022-11-15 18:00:00") # 
-
-session2DateStart <- lubridate::as_datetime("2022-11-22 17:30:00") # the half-hour it starts
-session2DateEnd <- lubridate::as_datetime("2022-11-22 18:30:00") # 
 
 # plot over time
 
 myCaption <- "Data: twitter API via @mkearney's rtweet package\nPlot by @dataknut\nSaving Session period(s) marked as grey box"
-ggplot2::ggplot(plotDT, aes(x = Time, y = nObs)) + 
-                  geom_point() +
-  annotate("rect", xmin = session1DateStart,
-           xmax = session1DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
-  annotate("rect", xmin = session2DateStart,
-           xmax = session2DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
+p <- ggplot2::ggplot(plotDT, aes(x = Time, y = nObs)) + 
+  geom_point() +
   labs(caption = myCaption)
+add_sessionDate(p)
 ```
 
 @fig-cumulativeTimeLine shows cumulative tweets by hour.
@@ -129,21 +169,15 @@ ggplot2::ggplot(plotDT, aes(x = Time, y = nObs)) +
 plotDT[, cumSum := cumsum(nObs)]
 ymax <- max(plotDT$cumSum)
 ymin <- min(plotDT$cumSum)
-ggplot2::ggplot(plotDT, aes(x = Time, y = cumSum)) + 
+p <- ggplot2::ggplot(plotDT, aes(x = Time, y = cumSum)) + 
   geom_point() +
   geom_line() +
-  annotate("rect", xmin = session1DateStart,
-           xmax = session1DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
-    annotate("rect", xmin = session2DateStart,
-           xmax = session2DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
   labs(caption = myCaption)
+
+add_sessionDate(p)
 ```
 
-We're not seeing the kind of uptick in tweets for Session 2 that we saw for Session 1...
+We see roughly the kind of uptick in tweets for Session 2 that we saw for Session 1...
 
 # Sentiment analysis
 
