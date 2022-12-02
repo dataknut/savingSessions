@@ -179,13 +179,15 @@ add_sessionDate(p)
 
 We see roughly the kind of uptick in tweets for Session 2 that we saw for Session 1...
 
-# Sentiment analysis
+## Sentiment analysis
 
 Yeah...
 
-# Content analysis
+## Content analysis
 
 Yeah...
+
+# The end
 
 ```{r}
 #| label: theEnd
