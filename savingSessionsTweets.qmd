@@ -324,7 +324,7 @@ pos <- bing_sentiment_counts %>%
 
 ## Session 1 sentiment word clouds
 
-Repeat these word clouds but just for the first session which started at `r session1DateStart`.
+Repeat these word clouds but just for the first session which was on `r as.Date(session1DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
@@ -390,7 +390,7 @@ wc$plot_pos
 
 ## Session 2 word clouds
 
-Repeat for session 2 which started at `r session2DateStart`.
+Repeat for session 2 which was on `r as.Date(session2DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
@@ -408,7 +408,7 @@ wc$plot_pos
 
 ## Session 3 word clouds
 
-Repeat for session 2 which started at `r session3DateStart`.
+Repeat for session 3 which which was on `r as.Date(session3DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
@@ -428,7 +428,7 @@ wc$plot_pos
 
 ## Session 4 word clouds
 
-Repeat for session 2 which started at `r session4DateStart`.
+Repeat for session 4 which was on `r as.Date(session4DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
@@ -446,7 +446,7 @@ wc$plot_pos
 
 ## Session 5 word clouds
 
-Repeat for session 2 which started at `r session5DateStart`.
+Repeat for session 5 which was on `r as.Date(session5DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
