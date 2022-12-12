@@ -31,12 +31,18 @@ Makes use of <https://github.com/dataknut/hashTagR>, a DIY wrapper for the [rtwe
 #| label: codeSetup
 #| warning: false
 
-library(data.table)
-library(hashTagR)
-library(ggplot2)
-library(lubridate)
-library(readr)
-library(rtweet)
+myLibs <- c("data.table",
+            "hashTagR",
+            "ggplot2",
+            "lubridate",
+            "readr",
+            "rtweet",
+            "tidyverse",
+            "tidytext",
+            "wordcloud")
+
+# load the libraries, install if we don't have them
+dkUtils::loadLibraries(myLibs) # get it here: devtools::install_github("dataknut/dkUtils")
 
 hashtags <- c("savingSession", "savingSessions", "savingsession") # fairly sure it's case insensitive
 searchString <- hashTagR::createSearchFromTags(hashtags) # convert to rtweet search string
@@ -58,6 +64,9 @@ session3DateEnd <- lubridate::as_datetime("2022-11-30 18:30:00") #
 
 session4DateStart <- lubridate::as_datetime("2022-12-01 17:00:00") # the half-hour it starts
 session4DateEnd <- lubridate::as_datetime("2022-12-01 18:00:00") # 
+
+session5DateStart <- lubridate::as_datetime("2022-12-12 17:00:00") # the half-hour it starts
+session5DateEnd <- lubridate::as_datetime("2022-12-12 18:30:00") # 
 
 # functions ----
 
@@ -90,8 +99,15 @@ add_sessionDate <- function(p){
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
         annotate("text", x = session4DateStart-(24*60*60), 
-             y = ymax*0.8, label = paste0("Session 4\n",
-                                          lubridate::as_date(session4DateStart)))
+             y = ymax*0.75, label = paste0("Session 4\n",
+                                          lubridate::as_date(session4DateStart))) +
+      annotate("rect", xmin = session5DateStart,
+           xmax = session5DateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+        annotate("text", x = session5DateStart-(24*60*60), 
+             y = ymax*0.9, label = paste0("Session 5\n",
+                                          lubridate::as_date(session5DateStart)))
   return(p)
 }
 ```
@@ -119,12 +135,12 @@ if(dir.exists(dataPath)){
 
 # now load all the tweet files we have matching that searchString
 
-dt <- hashTagR::loadTweets(path = dataPath, pattern = "*.csv")
+tweetsDT <- hashTagR::loadTweets(path = dataPath, pattern = "*.csv")
 
-u_dt <- hashTagR::processTweets(dt)
+uniq_tweetsDT <- hashTagR::processTweets(tweetsDT)
 ```
 
-That produced a data file of `r nrow(u_dt)` tweets.
+That produced a data file of `r nrow(uniq_tweetsDT)` tweets.
 
 We do NOT store the tweets in the repo for both [ethical](https://blogs.lse.ac.uk/impactofsocialsciences/2015/09/28/challenges-of-using-twitter-as-a-data-source-resources/) and practical reasons...
 
@@ -141,7 +157,7 @@ Note also that we may not be collecting the complete dataset of hashtagged tweet
 #| label: fig-timeLine
 #| fig-cap: "Tweets over time"
 
-plotDT <- u_dt[, .(nObs = .N), keyby = .(Time = ba_created_at_dateHour)]
+plotDT <- uniq_tweetsDT[, .(nObs = .N), keyby = .(Time = ba_created_at_dateHour)]
 
 periodAlpha <- 0.3 #  shaded rects on plots
 periodFill <- "grey50"
@@ -179,13 +195,272 @@ add_sessionDate(p)
 
 We see roughly the kind of uptick in tweets for Session 2 that we saw for Session 1...
 
-## Sentiment analysis
-
-Yeah...
-
 ## Content analysis
 
-Yeah...
+Let's try a word cloud.
+
+Inspiration here: <https://towardsdatascience.com/create-a-word-cloud-with-r-bde3e7422e8a>
+
+```{r}
+#| label: cleanTweets
+
+uniq_tweetsDT[, clean_text := gsub("https\\S*", " ", text)]
+uniq_tweetsDT[, clean_text := gsub("@\\S*", " ", clean_text)]
+uniq_tweetsDT[, clean_text := gsub("amp", " ", clean_text)]
+uniq_tweetsDT[, clean_text := gsub("RT", " ", clean_text)]
+uniq_tweetsDT[, clean_text := gsub("[\r\n]", " ", clean_text)]
+uniq_tweetsDT[, clean_text := gsub("[[:punct:]]", " ", clean_text)]
+
+```
+
+```{r}
+#| label: makeWords
+
+tweets_words <-  uniq_tweetsDT %>%
+ select(clean_text) %>%
+ unnest_tokens(word, clean_text)
+
+words <- tweets_words %>% count(word, sort=TRUE)
+```
+
+Make a word cloud for all tweets
+
+These are unlikely to render the word 'savingsession' as it will be in all tweets due to the twitter search pattern used.
+
+```{r}
+#| label: makeCloud
+
+set.seed(1234) # for reproducibility 
+wordcloud::wordcloud(words = words$word, 
+          freq = words$n, min.freq = 1,           
+          max.words=200, 
+          random.order=FALSE, 
+          rot.per=0.35,            
+          colors=brewer.pal(8, "Dark2"))
+```
+
+We need to remove common words (to, the, and, a, for, etc). These are called 'stop words'.
+
+```{r}
+#| label: cleanWordCloud
+
+data(stop_words)
+
+# remove the stop words - they are usually the most frequent
+# and usually the least interesting
+reduced_df <- words %>%
+  dplyr::anti_join(stop_words)
+
+# redraw
+set.seed(1234) # for reproducibility 
+wordcloud::wordcloud(words = reduced_df$word, 
+                     freq = reduced_df$n, min.freq = 1,           
+                     max.words=200, 
+                     random.order=FALSE, 
+                     rot.per=0.35,            
+                     colors=brewer.pal(8, "Dark2"))
+```
+
+Not especially informative...
+
+# Sentiment analysis
+
+Inspired by <https://www.tidytextmining.com/sentiment.html>
+
+Take those cleaned words and sentiment them!
+
+The first word cloud are names that have negative sentiment (according to `tidytext::get_sentiments("bing")`). Remember the size of the words is relative to the count of other negative words.
+
+```{r}
+#| label: sentiment
+bing_sentiment_counts <- reduced_df %>%
+  inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
+  #count(linenumber, sentiment, sort = TRUE) %>%
+  ungroup()
+
+message("\nDo we have roughly the same number of each kind of word?")
+table(bing_sentiment_counts$sentiment)
+
+message("What about the overall frequency of these words?")
+bing_sentiment_counts %>%
+  group_by(sentiment) %>%
+  summarize(freq=sum(n))
+
+```
+
+```{r}
+#| label: sentimentNeg
+#| 
+neg <- bing_sentiment_counts %>%
+  filter(sentiment == "negative")
+
+  wordcloud::wordcloud(words = neg$word, 
+                     freq = neg$n, min.freq = 1,           
+                     max.words=200, 
+                     random.order=FALSE, 
+                     rot.per=0.35,            
+                     colors=brewer.pal(8, "Dark2"))
+```
+
+The second wordcloud shows positive sentiments for all tweets. Remember the size of the words is relative to the count of other positive words.
+
+```{r}
+#| label: sentimentPos
+bing_sentiment_counts <- reduced_df %>%
+  inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
+  #count(linenumber, sentiment, sort = TRUE) %>%
+  ungroup()
+
+pos <- bing_sentiment_counts %>%
+  filter(sentiment == "positive")
+
+  wordcloud::wordcloud(words = pos$word, 
+                     freq = pos$n, min.freq = 1,           
+                     max.words=200, 
+                     random.order=FALSE, 
+                     rot.per=0.35,            
+                     colors=brewer.pal(8, "Dark2"))
+```
+
+## Session 1 sentiment word clouds
+
+Repeat these word clouds but just for the first session which started at `r session1DateStart`.
+
+These are just the tweets for the day of the event and the day after...
+
+```{r}
+#|label: session1SentimentCloud
+
+makeSentimentCloud <- function(dt){
+  # start with the selected tweets
+  # grab the words
+  tweets_words <-  dt %>%
+    select(clean_text) %>%
+    unnest_tokens(word, clean_text)
+  # count the words
+  words <- tweets_words %>% count(word, sort=TRUE)
+  # remove the stop words
+  data(stop_words)
+  
+  # remove the stop words - they are usually the most frequent
+  # and usually the least interesting
+  de_stopped <- words %>%
+    dplyr::anti_join(stop_words)
+  
+  bsc <- de_stopped %>%
+    inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
+    #count(linenumber, sentiment, sort = TRUE) %>%
+    ungroup()
+  
+    wc <- list()
+    
+  # select the sentiment to wordCloud
+  wc_df <- bsc %>%
+    filter(sentiment == "positive")
+  
+  set.seed(1234) # for reproducibility
+  wc$plot_pos <- wordcloud::wordcloud(words = wc_df$word, 
+                             freq = wc_df$n, min.freq = 1,           
+                             max.words=200, 
+                             random.order=FALSE, 
+                             rot.per=0.35,            
+                             colors=brewer.pal(8, "Dark2"))
+  wc_df <- bsc %>%
+    filter(sentiment == "negative")
+  
+  wc$plot_neg <- wordcloud::wordcloud(words = wc_df$word, 
+                             freq = wc_df$n, min.freq = 1,           
+                             max.words=200, 
+                             random.order=FALSE, 
+                             rot.per=0.35,            
+                             colors=brewer.pal(8, "Dark2"))
+  return(wc)
+}
+
+session1Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session1DateStart) &
+                                 ba_created_at_date <= as.Date(session1DateEnd)+1]
+
+
+wc <- makeSentimentCloud(session1Tweets)
+
+wc$plot_neg
+wc$plot_pos
+
+```
+
+## Session 2 word clouds
+
+Repeat for session 2 which started at `r session2DateStart`.
+
+These are just the tweets for the day of the event and the day after...
+
+```{r}
+#|label: session2SentimentCloud
+session2Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session2DateStart) &
+                                 ba_created_at_date <= as.Date(session2DateEnd)+1]
+
+
+wc <- makeSentimentCloud(session2Tweets)
+
+wc$plot_neg
+wc$plot_pos
+```
+
+## Session 3 word clouds
+
+Repeat for session 2 which started at `r session3DateStart`.
+
+These are just the tweets for the day of the event and the day after...
+
+```{r}
+#|label: session3SentimentCloud
+
+session3Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session3DateStart) &
+                                 ba_created_at_date <= as.Date(session3DateEnd)+1]
+
+
+wc <- makeSentimentCloud(session3Tweets)
+
+wc$plot_neg
+wc$plot_pos
+
+```
+
+## Session 4 word clouds
+
+Repeat for session 2 which started at `r session4DateStart`.
+
+These are just the tweets for the day of the event and the day after...
+
+```{r}
+#|label: session4SentimentCloud
+
+session4Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session4DateStart) &
+                                 ba_created_at_date <= as.Date(session4DateEnd)+1]
+
+wc <- makeSentimentCloud(session4Tweets)
+
+wc$plot_neg
+wc$plot_pos
+```
+
+## Session 5 word clouds
+
+Repeat for session 2 which started at `r session5DateStart`.
+
+These are just the tweets for the day of the event and the day after...
+
+```{r}
+#|label: session5SentimentCloud
+
+session5Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session5DateStart) &
+                                 ba_created_at_date <= as.Date(session5DateEnd)+1]
+
+wc <- makeSentimentCloud(session5Tweets)
+
+wc$plot_neg
+wc$plot_pos
+```
 
 # The end
 
