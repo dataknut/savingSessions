@@ -102,15 +102,15 @@ add_sessionDate <- function(p){
            xmax = session4DateEnd,
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session4DateStart-(24*60*60), 
-             y = ymax*0.75, label = paste0("Session 4\n",
+        annotate("text", x = session4DateStart+(48*60*60), 
+             y = ymax*0.7, label = paste0("Session 4\n",
                                           lubridate::as_date(session4DateStart))) +
       annotate("rect", xmin = session5DateStart,
            xmax = session5DateEnd,
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
         annotate("text", x = session5DateStart-(24*60*60), 
-             y = ymax*0.9, label = paste0("Session 5\n",
+             y = ymax*0.7, label = paste0("Session 5\n",
                                           lubridate::as_date(session5DateStart)))
   return(p)
 }
@@ -165,14 +165,14 @@ Note also that we may not be collecting the complete dataset of hashtagged tweet
 plotDT <- uniq_tweetsDT[, .(nObs = .N), keyby = .(Time = ba_created_at_dateHour)]
 
 periodAlpha <- 0.3 #  shaded rects on plots
-periodFill <- "grey50"
+periodFill <- "red"
 ymax <- max(plotDT$nObs)
 ymin <- min(plotDT$nObs)
 
 
 # plot over time
 
-myCaption <- "Data: twitter API via @mkearney's rtweet package\nPlot by @dataknut\nSaving Session period(s) marked as grey box"
+myCaption <- "Data: twitter API via @mkearney's rtweet package\nPlot by @dataknut\nSaving Session period(s) marked"
 p <- ggplot2::ggplot(plotDT, aes(x = Time, y = nObs)) + 
   geom_point() +
   labs(caption = myCaption)
@@ -230,7 +230,7 @@ words <- tweets_words %>% count(word, sort=TRUE)
 
 Make a word cloud for all tweets
 
-These are unlikely to render the word 'savingsession' as it will be in all tweets due to the twitter search pattern used.
+These _may_ not render the word 'savingsession' as it will be in all tweets due to the twitter search pattern used.
 
 ```{r}
 #| label: makeCloud
@@ -245,6 +245,8 @@ wordcloud::wordcloud(words = words$word,
 ```
 
 We need to remove common words (to, the, and, a, for, etc). These are called 'stop words'.
+
+What happens if we do that?
 
 ```{r}
 #| label: cleanWordCloud
@@ -266,15 +268,19 @@ wordcloud::wordcloud(words = reduced_df$word,
                      colors=brewer.pal(8, "Dark2"))
 ```
 
-Not especially informative...
+Not especially informative... Perhaps we should try to extract the 'sentiment' of the words.
 
-# Sentiment analysis
+## Sentiment analysis
 
 Inspired by <https://www.tidytextmining.com/sentiment.html>
 
 Take those cleaned words and sentiment them!
 
-The first word cloud are names that have negative sentiment (according to `tidytext::get_sentiments("bing")`). Remember the size of the words is relative to the count of other negative words.
+In each case we show the number of negative and positive codings for the unique words (which will add up to the number of unique words) and then the total frequency of words that are negative or positive (which will add up to the total number of words).
+
+> Got it?
+
+The first word cloud shows names that have negative sentiment (according to `tidytext::get_sentiments("bing")`). Remember the size of the words is relative to the count of all negative words.
 
 ```{r}
 #| label: sentiment
@@ -283,8 +289,14 @@ bing_sentiment_counts <- reduced_df %>%
   #count(linenumber, sentiment, sort = TRUE) %>%
   ungroup()
 
+message("\nNumber of unique words")
+uniqueN(bing_sentiment_counts$word)
+
 message("\nDo we have roughly the same number of each kind of word?")
 table(bing_sentiment_counts$sentiment)
+
+message("\nNumber of words coded")
+sum(bing_sentiment_counts$n)
 
 message("What about the overall frequency of these words?")
 bing_sentiment_counts %>%
@@ -307,7 +319,7 @@ neg <- bing_sentiment_counts %>%
                      colors=brewer.pal(8, "Dark2"))
 ```
 
-The second wordcloud shows positive sentiments for all tweets. Remember the size of the words is relative to the count of other positive words.
+The second wordcloud shows words with positive sentiments. Remember the size of the words is relative to the count of all positive words.
 
 ```{r}
 #| label: sentimentPos
@@ -327,11 +339,13 @@ pos <- bing_sentiment_counts %>%
                      colors=brewer.pal(8, "Dark2"))
 ```
 
-## Session 1 sentiment word clouds
+### Session 1 sentiment word clouds
 
-Repeat these word clouds but just for the first session which was on `r as.Date(session1DateStart)`.
+Repeat these negative/postive word clouds but just for the first session which was on `r as.Date(session1DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
+
+> Guess which cloud is which?
 
 ```{r}
 #| label: session1SentimentCloud
@@ -393,7 +407,7 @@ wc$plot_pos
 
 ```
 
-## Session 2 word clouds
+### Session 2 word clouds
 
 Repeat for session 2 which was on `r as.Date(session2DateStart)`.
 
@@ -411,7 +425,7 @@ wc$plot_neg
 wc$plot_pos
 ```
 
-## Session 3 word clouds
+### Session 3 word clouds
 
 Repeat for session 3 which which was on `r as.Date(session3DateStart)`.
 
@@ -431,7 +445,7 @@ wc$plot_pos
 
 ```
 
-## Session 4 word clouds
+### Session 4 word clouds
 
 Repeat for session 4 which was on `r as.Date(session4DateStart)`.
 
@@ -449,7 +463,7 @@ wc$plot_neg
 wc$plot_pos
 ```
 
-## Session 5 word clouds
+### Session 5 word clouds
 
 Repeat for session 5 which was on `r as.Date(session5DateStart)`.
 
