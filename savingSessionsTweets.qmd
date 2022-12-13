@@ -21,6 +21,10 @@ UK demand response experiments by NG-ESO and retailers such as [\@OctopusEnergy]
 
 Attempt to do some analysis of #savingSession(s) tweets.
 
+Inspired by [https://docs.ropensci.org/rtweet/](https://docs.ropensci.org/rtweet/)
+
+Last run at: `r Sys.time()`
+
 # Code setup
 
 Part of <https://github.com/dataknut/savingSessions>
@@ -116,11 +120,12 @@ add_sessionDate <- function(p){
 
 Grab the most recent set of tweets that mention `r searchString` using the [rtweet::search_tweet()](https://docs.ropensci.org/rtweet/reference/search_tweets.html) function and merge with any we may already have downloaded.
 
+> Should we also try to get all replies to @savingSessions?
+
 Note that tweets do not seem to be available after \~ 14 days via the API used by rtweet. Best to keep refreshing the data every week...
 
 ```{r}
 #| label: getData
-#| warning: false
 
 now <- lubridate::now()
 
@@ -329,7 +334,7 @@ Repeat these word clouds but just for the first session which was on `r as.Date(
 These are just the tweets for the day of the event and the day after...
 
 ```{r}
-#|label: session1SentimentCloud
+#| label: session1SentimentCloud
 
 makeSentimentCloud <- function(dt){
   # start with the selected tweets
