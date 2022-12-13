@@ -25,7 +25,11 @@ Inspired by [https://docs.ropensci.org/rtweet/](https://docs.ropensci.org/rtweet
 
 Last run at: `r Sys.time()`
 
-# Code setup
+# Setup
+
+::: {.panel-tabset}
+
+## Code setup
 
 Part of <https://github.com/dataknut/savingSessions>
 
@@ -116,7 +120,7 @@ add_sessionDate <- function(p){
 }
 ```
 
-# Getting data
+## Getting data
 
 Grab the most recent set of tweets that mention `r searchString` using the [rtweet::search_tweet()](https://docs.ropensci.org/rtweet/reference/search_tweets.html) function and merge with any we may already have downloaded.
 
@@ -151,7 +155,11 @@ We do NOT store the tweets in the repo for both [ethical](https://blogs.lse.ac.u
 
 Note also that we may not be collecting the complete dataset of hashtagged tweets due to the [intricacies of the twitter API](https://www.demos.co.uk/files/Road_to_representivity_final.pdf?1441811336).
 
+:::
+
 # Analysis
+
+::: {.panel-tabset}
 
 ## Tweet time line
 
@@ -270,7 +278,7 @@ wordcloud::wordcloud(words = reduced_df$word,
 
 Not especially informative... Perhaps we should try to extract the 'sentiment' of the words.
 
-## Sentiment analysis
+## Sentiment analysis (all tweets)
 
 Inspired by <https://www.tidytextmining.com/sentiment.html>
 
@@ -339,7 +347,7 @@ pos <- bing_sentiment_counts %>%
                      colors=brewer.pal(8, "Dark2"))
 ```
 
-### Session 1 sentiment word clouds
+## Session 1 sentiment
 
 Repeat these negative/postive word clouds but just for the first session which was on `r as.Date(session1DateStart)`.
 
@@ -407,7 +415,7 @@ wc$plot_pos
 
 ```
 
-### Session 2 word clouds
+## Session 2 sentiment
 
 Repeat for session 2 which was on `r as.Date(session2DateStart)`.
 
@@ -425,7 +433,7 @@ wc$plot_neg
 wc$plot_pos
 ```
 
-### Session 3 word clouds
+## Session 3 sentiment
 
 Repeat for session 3 which which was on `r as.Date(session3DateStart)`.
 
@@ -445,7 +453,7 @@ wc$plot_pos
 
 ```
 
-### Session 4 word clouds
+## Session 4 sentiment
 
 Repeat for session 4 which was on `r as.Date(session4DateStart)`.
 
@@ -463,7 +471,7 @@ wc$plot_neg
 wc$plot_pos
 ```
 
-### Session 5 word clouds
+## Session 5 sentiment
 
 Repeat for session 5 which was on `r as.Date(session5DateStart)`.
 
@@ -480,8 +488,7 @@ wc <- makeSentimentCloud(session5Tweets)
 wc$plot_neg
 wc$plot_pos
 ```
-
-# The end
+:::
 
 ```{r}
 #| label: theEnd
