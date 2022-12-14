@@ -40,12 +40,14 @@ Makes use of <https://github.com/dataknut/hashTagR>, a DIY wrapper for the [rtwe
 #| warning: false
 
 myLibs <- c("data.table",
+            "dplyr",
             "hashTagR",
             "ggplot2",
+            "knitr",
+            "kableExtra",
             "lubridate",
             "readr",
             "rtweet",
-            "tidyverse",
             "tidytext",
             "wordcloud")
 
@@ -172,7 +174,7 @@ Note also that we may not be collecting the complete dataset of hashtagged tweet
 
 plotDT <- uniq_tweetsDT[, .(nObs = .N), keyby = .(Time = ba_created_at_dateHour)]
 
-periodAlpha <- 0.3 #  shaded rects on plots
+periodAlpha <- 0.3 #  shaded rects on wc_plots
 periodFill <- "red"
 ymax <- max(plotDT$nObs)
 ymin <- min(plotDT$nObs)
@@ -217,6 +219,7 @@ Inspiration here: <https://towardsdatascience.com/create-a-word-cloud-with-r-bde
 ```{r}
 #| label: cleanTweets
 
+# clean up the tweet text to remove stuff we don't want.
 uniq_tweetsDT[, clean_text := gsub("https\\S*", " ", text)]
 uniq_tweetsDT[, clean_text := gsub("@\\S*", " ", clean_text)]
 uniq_tweetsDT[, clean_text := gsub("amp", " ", clean_text)]
@@ -284,7 +287,7 @@ Inspired by <https://www.tidytextmining.com/sentiment.html>
 
 Take those cleaned words and sentiment them!
 
-In each case we show the number of negative and positive codings for the unique words (which will add up to the number of unique words) and then the total frequency of words that are negative or positive (which will add up to the total number of words).
+In each case we show the number of negative and positive codings for the unique words (which will add up to the Number of unique words by sentiment) and then the total frequency of words that are negative or positive (which will add up to the total number of words).
 
 > Got it?
 
@@ -297,7 +300,7 @@ bing_sentiment_counts <- reduced_df %>%
   #count(linenumber, sentiment, sort = TRUE) %>%
   ungroup()
 
-message("\nNumber of unique words")
+message("\nNumber of unique words by sentiment")
 uniqueN(bing_sentiment_counts$word)
 
 message("\nDo we have roughly the same number of each kind of word?")
@@ -315,11 +318,11 @@ bing_sentiment_counts %>%
 
 ```{r}
 #| label: sentimentNeg
-#| 
+#| warning: true
 neg <- bing_sentiment_counts %>%
   filter(sentiment == "negative")
-
-  wordcloud::wordcloud(words = neg$word, 
+set.seed(1234) # for reproducibility 
+wordcloud::wordcloud(words = neg$word, 
                      freq = neg$n, min.freq = 1,           
                      max.words=200, 
                      random.order=FALSE, 
@@ -331,15 +334,17 @@ The second wordcloud shows words with positive sentiments. Remember the size of 
 
 ```{r}
 #| label: sentimentPos
+#| warning: true
 bing_sentiment_counts <- reduced_df %>%
-  inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
+  dplyr::inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
   #count(linenumber, sentiment, sort = TRUE) %>%
-  ungroup()
+  dplyr::ungroup()
 
 pos <- bing_sentiment_counts %>%
-  filter(sentiment == "positive")
+  dplyr::filter(sentiment == "positive")
 
-  wordcloud::wordcloud(words = pos$word, 
+set.seed(1234) # for reproducibility 
+wordcloud::wordcloud(words = pos$word, 
                      freq = pos$n, min.freq = 1,           
                      max.words=200, 
                      random.order=FALSE, 
@@ -353,17 +358,19 @@ Repeat these negative/postive word clouds but just for the first session which w
 
 These are just the tweets for the day of the event and the day after...
 
-> Guess which cloud is which?
+Positive words...
 
 ```{r}
-#| label: session1SentimentCloud
+#| label: posCloudSessionOne
+#| warning: true
 
-makeSentimentCloud <- function(dt){
+# default cloud = positive
+makeSentimentCloud <- function(dt, sentiFilter = "positive"){
   # start with the selected tweets
   # grab the words
   tweets_words <-  dt %>%
-    select(clean_text) %>%
-    unnest_tokens(word, clean_text)
+    dplyr::select(clean_text) %>%
+    tidytext::unnest_tokens(word, clean_text)
   # count the words
   words <- tweets_words %>% count(word, sort=TRUE)
   # remove the stop words
@@ -375,44 +382,58 @@ makeSentimentCloud <- function(dt){
     dplyr::anti_join(stop_words)
   
   bsc <- de_stopped %>%
-    inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
+    dplyr::inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
     #count(linenumber, sentiment, sort = TRUE) %>%
     ungroup()
   
-    wc <- list()
-    
+  results <- list()
+  results$ft <- table(bsc$sentiment)
+  
+  results$nt <- bsc %>%
+    group_by(sentiment) %>%
+    summarize(freq=sum(n))
+  
   # select the sentiment to wordCloud
-  wc_df <- bsc %>%
-    filter(sentiment == "positive")
+  filtered <- bsc %>%
+    dplyr::filter(sentiment == sentiFilter) # why not working?
   
   set.seed(1234) # for reproducibility
-  wc$plot_pos <- wordcloud::wordcloud(words = wc_df$word, 
-                             freq = wc_df$n, min.freq = 1,           
+  # seems to get rendered immediately, why?
+  wordcloud::wordcloud(words = filtered$word, 
+                             freq = filtered$n, min.freq = 1,           
                              max.words=200, 
                              random.order=FALSE, 
                              rot.per=0.35,            
                              colors=brewer.pal(8, "Dark2"))
-  wc_df <- bsc %>%
-    filter(sentiment == "negative")
   
-  wc$plot_neg <- wordcloud::wordcloud(words = wc_df$word, 
-                             freq = wc_df$n, min.freq = 1,           
-                             max.words=200, 
-                             random.order=FALSE, 
-                             rot.per=0.35,            
-                             colors=brewer.pal(8, "Dark2"))
-  return(wc)
+  return(results)
 }
 
 session1Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session1DateStart) &
                                  ba_created_at_date <= as.Date(session1DateEnd)+1]
 
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(session1Tweets, 
+                   sentiFilter = "positive")
 
-wc <- makeSentimentCloud(session1Tweets)
+knitr::kable(res$ft, 
+             caption = "Number of unique words by sentiment") %>%
+  kable_styling()
 
-wc$plot_neg
-wc$plot_pos
+knitr::kable(res$nt, 
+             caption = "Number of words") %>%
+  kable_styling()
 
+```
+
+Negative words...
+
+```{r}
+#| label: negCloudSessionOne
+#| warning: true
+
+res <- makeSentimentCloud(session1Tweets, 
+                   sentiFilter = "negative")
 ```
 
 ## Session 2 sentiment
@@ -421,16 +442,35 @@ Repeat for session 2 which was on `r as.Date(session2DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
+Positive words...
+
 ```{r}
-#|label: session2SentimentCloud
+#| label: posCloudSession2
+#| warning: true
 session2Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session2DateStart) &
                                  ba_created_at_date <= as.Date(session2DateEnd)+1]
 
 
-wc <- makeSentimentCloud(session2Tweets)
+res <- makeSentimentCloud(session2Tweets, 
+                   sentiFilter = "positive")
 
-wc$plot_neg
-wc$plot_pos
+knitr::kable(res$ft, 
+             caption = "Number of unique words by sentiment") %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = "Number of words by sentiment by sentiment") %>%
+  kable_styling()
+```
+
+Negative words...
+
+```{r}
+#| label: negCloudSession2
+#| warning: true
+
+res <- makeSentimentCloud(session2Tweets, 
+                   sentiFilter = "negative")
 ```
 
 ## Session 3 sentiment
@@ -439,18 +479,36 @@ Repeat for session 3 which which was on `r as.Date(session3DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
+Positive words...
+
 ```{r}
-#|label: session3SentimentCloud
+#| label: posCloudSession3
+#| warning: true
 
 session3Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session3DateStart) &
                                  ba_created_at_date <= as.Date(session3DateEnd)+1]
 
 
-wc <- makeSentimentCloud(session3Tweets)
+res <- makeSentimentCloud(session3Tweets, 
+                   sentiFilter = "positive")
 
-wc$plot_neg
-wc$plot_pos
+knitr::kable(res$ft, 
+             caption = "Number of unique words by sentiment") %>%
+  kable_styling()
 
+knitr::kable(res$nt, 
+             caption = "Number of words by sentiment") %>%
+  kable_styling()
+```
+
+Negative words
+
+```{r}
+#| label: negCloudSession3
+#| warning: true
+
+res <- makeSentimentCloud(session3Tweets, 
+                   sentiFilter = "negative")
 ```
 
 ## Session 4 sentiment
@@ -459,16 +517,34 @@ Repeat for session 4 which was on `r as.Date(session4DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
+Positive words...
+
 ```{r}
-#|label: session4SentimentCloud
+#| label: posCloudSession4
+#| warning: true
 
 session4Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session4DateStart) &
                                  ba_created_at_date <= as.Date(session4DateEnd)+1]
 
-wc <- makeSentimentCloud(session4Tweets)
+res <- makeSentimentCloud(session4Tweets, 
+                   sentiFilter = "positive")
 
-wc$plot_neg
-wc$plot_pos
+knitr::kable(res$ft, 
+             caption = "Number of unique words by sentiment") %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = "Number of words by sentiment") %>%
+  kable_styling()
+```
+
+Negative words...
+
+```{r}
+#| label: negCloudSession4
+#| warning: true
+res <- makeSentimentCloud(session4Tweets, 
+                   sentiFilter = "negative")
 ```
 
 ## Session 5 sentiment
@@ -477,17 +553,36 @@ Repeat for session 5 which was on `r as.Date(session5DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
+Positive words
+
 ```{r}
-#|label: session5SentimentCloud
+#| label: posCloudSession5
+#| warning: true
 
 session5Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session5DateStart) &
                                  ba_created_at_date <= as.Date(session5DateEnd)+1]
 
-wc <- makeSentimentCloud(session5Tweets)
+res <- makeSentimentCloud(session5Tweets, 
+                   sentiFilter = "positive")
 
-wc$plot_neg
-wc$plot_pos
+knitr::kable(res$ft, 
+             caption = "Number of unique words by sentiment") %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = "Number of words by sentiment") %>%
+  kable_styling()
 ```
+
+Negative words...
+
+```{r}
+#| label: negCloudSession5
+#| warning: true
+res <- makeSentimentCloud(session5Tweets, 
+                   sentiFilter = "negative")
+```
+
 :::
 
 ```{r}
