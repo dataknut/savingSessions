@@ -80,7 +80,7 @@ session5DateEnd <- lubridate::as_datetime("2022-12-12 18:30:00") #
 
 # functions ----
 
-add_sessionDate <- function(p){
+add_sessionDates <- function(p){
   # add session dates to plot
   p <- p +
   annotate("rect", xmin = session1DateStart,
@@ -186,7 +186,7 @@ myCaption <- "Data: twitter API via @mkearney's rtweet package\nPlot by @dataknu
 p <- ggplot2::ggplot(plotDT, aes(x = Time, y = nObs)) + 
   geom_point() +
   labs(caption = myCaption)
-add_sessionDate(p)
+add_sessionDates(p)
 ```
 
 @fig-cumulativeTimeLine shows cumulative tweets by hour.
@@ -205,7 +205,7 @@ p <- ggplot2::ggplot(plotDT, aes(x = Time, y = cumSum)) +
   geom_line() +
   labs(caption = myCaption)
 
-add_sessionDate(p)
+add_sessionDates(p)
 ```
 
 We see roughly the kind of uptick in tweets for Session 2 that we saw for Session 1...
@@ -237,9 +237,16 @@ tweets_words <-  uniq_tweetsDT %>%
  unnest_tokens(word, clean_text)
 
 words <- tweets_words %>% count(word, sort=TRUE)
+
+tweets_words_per_day <-  uniq_tweetsDT %>%
+  group_by(ba_created_at_date) %>%
+ select(clean_text) %>%
+ unnest_tokens(word, clean_text)
+
+words_per_day <- tweets_words_per_day %>% count(word, sort=TRUE)
 ```
 
-Make a word cloud for all tweets
+Make a word cloud for all words in all tweets.
 
 These _may_ not render the word 'savingsession' as it will be in all tweets due to the twitter search pattern used.
 
@@ -269,6 +276,9 @@ data(stop_words)
 reduced_df <- words %>%
   dplyr::anti_join(stop_words)
 
+reduced_df_daily <- words_per_day %>%
+  dplyr::anti_join(stop_words)
+
 # redraw
 set.seed(1234) # for reproducibility 
 wordcloud::wordcloud(words = reduced_df$word, 
@@ -296,6 +306,11 @@ The first word cloud shows names that have negative sentiment (according to `tid
 ```{r}
 #| label: sentiment
 bing_sentiment_counts <- reduced_df %>%
+  inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
+  #count(linenumber, sentiment, sort = TRUE) %>%
+  ungroup()
+
+bing_sentiment_counts_daily <- reduced_df_daily %>%
   inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
   #count(linenumber, sentiment, sort = TRUE) %>%
   ungroup()
@@ -350,6 +365,26 @@ wordcloud::wordcloud(words = pos$word,
                      random.order=FALSE, 
                      rot.per=0.35,            
                      colors=brewer.pal(8, "Dark2"))
+```
+
+The final plot shows trends in negative and positive sentiment over time.
+
+```{r}
+#| label: sentimentTrend
+
+bing_sentiment_counts_daily_dt <- data.table::as.data.table(bing_sentiment_counts_daily)
+plot_daily_sentiment <- bing_sentiment_counts_daily_dt[, .(n = sum(n)),
+                                                       keyby = .(ba_created_at_date, sentiment)]
+
+p <- ggplot2::ggplot(plot_daily_sentiment, aes(
+  x = as.Date(ba_created_at_date),
+  y = n,
+  colour = sentiment
+)) +
+  geom_line() +
+  labs(x = "Date",
+       y = "N words per day")
+#add_sessionDates(p) only works on half-hourly x axis
 ```
 
 ## Session 1 sentiment
