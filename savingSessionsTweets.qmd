@@ -78,6 +78,9 @@ session4DateEnd <- lubridate::as_datetime("2022-12-01 18:00:00") #
 session5DateStart <- lubridate::as_datetime("2022-12-12 17:00:00") # the half-hour it starts
 session5DateEnd <- lubridate::as_datetime("2022-12-12 18:30:00") # 
 
+session6DateStart <- lubridate::as_datetime("2023-01-19 09:00:00") # the half-hour it starts
+session6DateEnd <- lubridate::as_datetime("2023-01-19 09:30:00") # 
+
 # functions ----
 
 add_sessionDates <- function(p){
@@ -87,37 +90,43 @@ add_sessionDates <- function(p){
            xmax = session1DateEnd,
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
-    annotate("text", x = session1DateStart-(24*60*60), 
-             y = ymax*0.9, label = paste0("Session 1\n",
-                                          lubridate::as_date(session1DateStart))) + 
+    annotate("text", x = session1DateStart-(24*60*60), vjust=-0.1, angle=90,
+             y = ymax*0.5, label = paste0("Session 1: ", lubridate::as_date(session1DateStart))) + 
   annotate("rect", xmin = session2DateStart,
            xmax = session2DateEnd,
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session2DateStart-(24*60*60), 
-             y = ymax*0.9, label = paste0("Session 2\n",
+        annotate("text", x = session2DateStart-(24*60*60), vjust=-0.1, angle=90,
+             y = ymax*0.5, label = paste0("Session 2: ",
                                           lubridate::as_date(session2DateStart))) + 
   annotate("rect", xmin = session3DateStart,
            xmax = session3DateEnd,
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session3DateStart-(24*60*60), 
-             y = ymax*0.9, label = paste0("Session 3\n",
+        annotate("text", x = session3DateStart-(24*60*60), vjust=-0.1, angle=90,
+             y = ymax*0.5, label = paste0("Session 3: ",
                                           lubridate::as_date(session3DateStart)))  +
     annotate("rect", xmin = session4DateStart,
            xmax = session4DateEnd,
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session4DateStart+(48*60*60), 
-             y = ymax*0.7, label = paste0("Session 4\n",
+        annotate("text", x = session4DateStart+(48*60*60), vjust=-0.1, angle=90,
+             y = ymax*0.5, label = paste0("Session 4: ",
                                           lubridate::as_date(session4DateStart))) +
       annotate("rect", xmin = session5DateStart,
            xmax = session5DateEnd,
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session5DateStart-(24*60*60), 
-             y = ymax*0.7, label = paste0("Session 5\n",
-                                          lubridate::as_date(session5DateStart)))
+        annotate("text", x = session5DateStart-(24*60*60), vjust=-0.1, angle=90,
+             y = ymax*0.5, label = paste0("Session 5: ",
+                                          lubridate::as_date(session5DateStart))) +
+  annotate("rect", xmin = session6DateStart,
+           xmax = session6DateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+        annotate("text", x = session6DateStart-(24*60*60), vjust=-0.1, angle=90,
+             y = ymax*0.5, label = paste0("Session 6: ",
+                                          lubridate::as_date(session6DateStart)))
   return(p)
 }
 ```
@@ -615,6 +624,43 @@ Negative words...
 #| label: negCloudSession5
 #| warning: true
 res <- makeSentimentCloud(session5Tweets, 
+                   sentiFilter = "negative")
+```
+
+
+## Session 6 sentiment
+
+Repeat for session 6 which was on `r as.Date(session6DateStart)`.
+
+These are just the tweets for the day of the event and the day after...
+
+Positive words
+
+```{r}
+#| label: posCloudSession6
+#| warning: true
+
+session6Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session6DateStart) &
+                                 ba_created_at_date <= as.Date(session6DateEnd)+1]
+
+res <- makeSentimentCloud(session6Tweets, 
+                   sentiFilter = "positive")
+
+knitr::kable(res$ft, 
+             caption = "Number of unique words by sentiment") %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = "Number of words by sentiment") %>%
+  kable_styling()
+```
+
+Negative words...
+
+```{r}
+#| label: negCloudSession6
+#| warning: true
+res <- makeSentimentCloud(session6Tweets, 
                    sentiFilter = "negative")
 ```
 
