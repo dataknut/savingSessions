@@ -31,11 +31,150 @@ Part of <https://github.com/dataknut/savingSessions>
 
 library(data.table)
 library(dkUtils)
+library(flextable)
 library(ggplot2)
 library(hms)
 library(lubridate)
 
 esoDataPath <- path.expand("~/Dropbox/data/UK_NGESO/genMix/")
+
+# functions ----
+
+makeFlexTable <- function(df, cap = "caption", digits = 0){
+  # makes a pretty flextable - see https://cran.r-project.org/web/packages/flextable/index.html
+  ft <- flextable::flextable(df)
+  ft <- colformat_double(ft, digits = digits)
+  ft <- fontsize(ft, size = 9)
+  ft <- fontsize(ft, size = 10, part = "header")
+  ft <- set_caption(ft, caption = cap)
+  return(flextable::autofit(ft))
+}
+
+make_GwComparisonPlot <- function(dt, # half hourly data
+                                  startDateTime, endDateTime){
+  res <- list() # results holder
+  
+  sessionDay <- lubridate::wday(startDateTime, label = TRUE) # you'll see why
+  sessionDate <- lubridate::date(endDateTime) # you'll see why
+  
+  compare_HalfHourlyDT <- dt[dv_date != sessionDate & # not the session day
+                               lubridate::wday(dv_date, label = TRUE) == sessionDay & # same day of the week
+                               dv_date > sessionDate - 60 # 2 months
+  ] # to check
+  compare_HalfHourlyDT[, wday := lubridate::wday(dv_date, label = TRUE)]
+  nComparisonDays <- uniqueN(compare_HalfHourlyDT$dv_date)
+  
+  res$nCompDays <- nComparisonDays
+  dt[, dv_hms := hms::as_hms(dv_start)]
+  recent_HalfHourlyDT <- compare_HalfHourlyDT[,
+                                              .(mean_MW_elec = mean(GENERATION)), 
+                                              keyby = .(hms = dv_hms,
+                                                        wday)] # to check
+  recent_HalfHourlyDT[, legend_lab := paste0("Comparison mean MW")]
+  
+  session_HalfHourlyDT <- dt[dv_date == lubridate::date(startDateTime),  #  the session day
+                             .(mean_MW_elec = mean(GENERATION)), 
+                             keyby = .(hms = dv_hms,
+                                       wday = lubridate::wday(dv_date, label = TRUE))] # to check
+  session_HalfHourlyDT[, legend_lab := "Saving session MW"]
+  plotDT <- rbind(recent_HalfHourlyDT, session_HalfHourlyDT)
+  
+  plotDT[, adjusted_hms := hms::as_hms(hms + (15*60))]
+  
+  periodAlpha <- 0.3 #  shaded rects on plots
+  periodFill <- "grey50"
+    ymax <- max(plotDT$mean_MW_elec/1000) # GW
+    ymin <- min(plotDT$mean_MW_elec/1000) # GW
+    xmin <- hms::as_hms(lubridate::as_datetime(startDateTime))
+    xmax <- hms::as_hms(lubridate::as_datetime(endDateTime)) + 30*60 # to allow for the start time
+    
+    t <- plotDT[hms >= xmin & hms < xmax]
+    
+    wt <- dcast(t[, .(hms, wday, mean_MW_elec, legend_lab)], hms ~ legend_lab, value.var = "mean_MW_elec")
+    
+    wt[, MW_diff := `Saving session MW` - `Comparison mean MW`]
+    res$wt <- wt[, pc_diff := 100*(MW_diff/`Comparison mean MW`)]
+    
+    label <- paste0("SavingSession MW (", 
+                    as.Date(startDateTime),
+                    ")"
+    )
+    plotDT[, legend_lab := ifelse(legend_lab == "Saving session MW",
+                                  label,
+                                  legend_lab)]
+    
+    res$p <- ggplot2::ggplot(plotDT, aes(x = adjusted_hms, y = mean_MW_elec/1000, # GW 
+                                         colour = legend_lab)) +
+      geom_line() +
+      geom_point() +
+      annotate("rect", xmin = xmin,
+               xmax = xmax,
+               ymin = ymin, ymax = ymax,
+               alpha = periodAlpha, fill = periodFill) +
+      scale_color_manual(name = "Legend", values=c('grey', 'red')) + # this should always make comparison grey
+      theme(legend.position = "bottom") +
+      labs(x = "Time of day",
+           y = "Mean GW per half-hour",
+           caption = paste0("Data: NG-ESO\nPlot: @dataknut\nPoints plotted at middle of half-hour for clarity\nNumber of comparison days: ", res$nCompDays)
+      )
+    
+    return(res)
+}
+
+make_ciComparisonPlot <- function(dt, startDateTime, endDateTime){
+  res <- list() # results list
+  
+  sessionDay <- lubridate::wday(startDateTime, label = TRUE) # you'll see why
+  sessionDate <- lubridate::date(endDateTime) # you'll see why
+  
+  compare_HalfHourlyCIDT <- dt[dv_start != sessionDate & # not the session day
+                                 lubridate::wday(dv_date, label = TRUE) == sessionDay & # same day of the week
+                                 dv_date > sessionDate - 60 # 2 months
+  ] # to check
+  compare_HalfHourlyCIDT[, wday := lubridate::wday(dv_date, label = TRUE)]
+  nComparisonDays <- uniqueN(compare_HalfHourlyCIDT$dv_date)
+  
+  recent_HalfHourlyCIDT <- compare_HalfHourlyCIDT[,
+                                                  .(mean_CI = mean(CARBON_INTENSITY)), 
+                                                  keyby = .(hms = dv_hms,
+                                                            wday)] # to check
+  
+  recent_HalfHourlyCIDT[, legend_lab := "Comparison mean kg CO2/kWh"]
+  
+  session_HalfHourlyCIDT <- dt[dv_date == lubridate::date(startDateTime),  #  the session day
+                               .(mean_CI = mean(CARBON_INTENSITY)), 
+                               keyby = .(hms = dv_hms,
+                                         wday = lubridate::wday(dv_date, label = TRUE))] # to check
+  session_HalfHourlyCIDT[, legend_lab := paste0("SavingSessions kg CO2/kWh")]
+  
+  plotDT <- rbind(recent_HalfHourlyCIDT, session_HalfHourlyCIDT)
+  
+  plotDT[, adjusted_hms := hms::as_hms(hms + (15*60))] # ad5 15 minutes so plots at middle of half-hour for clqrity
+  
+  periodAlpha <- 0.3 #  shaded rects on plots
+  periodFill <- "grey50"
+    ymax <- max(plotDT$mean_CI)
+    ymin <- min(plotDT$mean_CI)
+    xmin <- hms::as_hms(lubridate::as_datetime(startDateTime))
+    xmax <- hms::as_hms(lubridate::as_datetime(endDateTime)) + 30*60 # to allow for the start time
+    
+    res$p <- ggplot2::ggplot(plotDT, aes(x = adjusted_hms, y = mean_CI, 
+                                         colour = legend_lab)) +
+      geom_line() +
+      geom_point() +
+      scale_color_manual(values=c('grey', 'red')) + # this should always make comparison grey
+      annotate("rect", xmin = xmin,
+               xmax = xmax,
+               ymin = ymin, ymax = ymax,
+               alpha = periodAlpha, fill = periodFill) +
+      scale_color_manual(name = "Legend", values=c('grey', 'red')) + # this should always make comparison grey
+      theme(legend.position = "bottom") +
+      labs(x = "Time of day",
+           y = "Mean carbon intensity (g CO2e/kWh)",
+           caption = paste0("Data: @NationalGridESO \nPlot: @dataknut\nPoints plotted at middle of half-hour for clarity\nNumber of comparator days = ", nComparisonDays)
+      )
+    return(res)
+}
 ```
 
 # Getting data
@@ -78,6 +217,9 @@ if(today - lastNGESO > 1) {
 }
 
 # we think renewable is wind + solar, low carbon includes nuclear
+
+ngeso_dt_orig[, dv_date := lubridate::as_date(DATETIME)] # for filtering etc
+ngeso_dt_orig[, dv_hms := hms::as_hms(DATETIME)] # for filtering etc
 ```
 
 Select the dates and periods we need. GENERATION is in MW. It has some exclusions, its just an indicator.
@@ -90,73 +232,30 @@ session1DateEnd <- lubridate::as_datetime("2022-11-15 18:00:00") #
 
 session2DateStart <- lubridate::as_datetime("2022-11-22 17:30:00") # the half-hour it starts
 session2DateEnd <- lubridate::as_datetime("2022-11-22 18:30:00") # 
-```
 
-1.  Session 1: `r session1DateStart` to `r session1DateEnd`
+session3DateStart <- lubridate::as_datetime("2022-11-30 17:30:00") # the half-hour it starts
+session3DateEnd <- lubridate::as_datetime("2022-11-30 18:30:00") # 
 
-2.  Session 2: `r session2DateStart` to `r session2DateEnd`
+session4DateStart <- lubridate::as_datetime("2022-12-01 17:00:00") # the half-hour it starts
+session4DateEnd <- lubridate::as_datetime("2022-12-01 18:00:00") # 
 
-```{r}
-session1_dt <- ngeso_dt_orig[dv_start >= session1DateStart & 
-                               dv_start < session1DateEnd]
-session2_dt <- ngeso_dt_orig[dv_start >= session2DateStart & 
-                               dv_start < session2DateEnd]
+session5DateStart <- lubridate::as_datetime("2022-12-12 17:00:00") # the half-hour it starts
+session5DateEnd <- lubridate::as_datetime("2022-12-12 18:30:00") # 
 
-message("Session 1:")
-head(session1_dt[, .(dv_start, GENERATION)])
+session6DateStart <- lubridate::as_datetime("2023-01-19 09:00:00") # the half-hour it starts
+session6DateEnd <- lubridate::as_datetime("2023-01-19 09:30:00") # 
 
-message("Session 2:")
-head(session2_dt[, .(dv_start, GENERATION)])
-
-ngeso_dt_orig[, dv_date := lubridate::date(dv_start)]
-sessions_dt <- ngeso_dt_orig[dv_date == lubridate::date(session1DateStart) |
-                               dv_date == lubridate::date(session2DateStart)]
-
-sessions_dt[, hms := hms::as_hms(dv_start)]
-
-periodAlpha <- 0.3 #  shaded rects on plots
-periodFill <- "grey50"
-plotDT <- sessions_dt[dv_date == lubridate::date(session1DateStart)]
-                      
-ymax <- max(plotDT$GENERATION/1000)
-ymin <- 0
-
-psess1 <- ggplot2::ggplot(plotDT, 
-                          aes(x = hms, y = GENERATION/1000)) +
-  geom_line() +
-  ylim(0, NA) +
-  facet_grid(. ~ dv_date) +
-    annotate("rect", xmin = hms::as_hms(session1DateStart),
-           xmax = hms::as_hms(session1DateEnd),
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
-  labs(x = "Time of day",
-       y = "GENERATION (GW)",
-       caption = "Session 1: NG-ESO Generation Mix data (saving session marked)")
-psess1
-
-plotDT <- sessions_dt[dv_date == lubridate::date(session2DateStart)]
-                      
-ymax <- max(plotDT$GENERATION/1000)
-ymin <- 0
-psess2 <- ggplot2::ggplot(plotDT, 
-                          aes(x = hms, y = GENERATION/1000)) +
-  geom_line() +
-  ylim(0, NA) +
-  facet_grid(. ~ dv_date) +
-    annotate("rect", xmin = hms::as_hms(session2DateStart),
-           xmax = hms::as_hms(session2DateEnd),
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
-   labs(x = "Time of day",
-       y = "GENERATION (GW)",
-       caption = "Session 2: NG-ESO Generation Mix data (saving session marked)")
-psess2
+session7DateStart <- lubridate::as_datetime("2023-01-23 17:00:00") # the half-hour it starts
+session7DateEnd <- lubridate::as_datetime("2023-01-23 17:30:00") # 
 ```
 
 # Analysis
 
-## Session 1
+::: panel-tabset
+
+## Session 1 (`r as.Date(session1DateStart)`)
+
+(Not all retailers may have taken part in this one)
 
 According to <https://energycentral.com/news/octopus-energy-provide-108mw-grid-flexibility-first-%E2%80%98saving-session%E2%80%99>:
 
@@ -164,9 +263,17 @@ According to <https://energycentral.com/news/octopus-energy-provide-108mw-grid-f
 
 But <https://www.current-news.co.uk/news/octopus-energy-customers-provide-108mw-of-flexibility-during-first-saving-session> quotes Octopus as actually saying:
 
-> "if the program was scaled to all electric smart meter customers with all supplier\[s\] in Great Britain, it could create over 1GW of flexible energy load"
+> "if the program was scaled to _all electric smart meter customers_ with all supplier\[s\] in Great Britain, it could create over 1GW of flexible energy load"
+
+The following plot compares the energy use during the DSF event with energy use in the same period for the same day of the week over the last 60 days (~ 3 months). Note this is NOT necessarily how the retailers are estimating % reduction.
 
 ```{r}
+#| label: makePlotSession1
+#| tbl-cap: "MW comparisons"
+#| warning: false
+session1_dt <- ngeso_dt_orig[dv_start >= session1DateStart & 
+                               dv_start < session1DateEnd]
+
 session1_mean_mw <- mean(session1_dt$GENERATION)
 session1_mean_gw <- session1_mean_mw/1000
 
@@ -178,7 +285,24 @@ scaled_GW_pc <- 100*(scaled_GW/session1_mean_gw)
 gb_smartMeters <- 14000000
 mean_kW_per_participant <- 108/200
 scaled_GB_smart_meters_GW_pc <- 100*((gb_smartMeters*mean_kW_per_participant)/1000000)/session1_mean_gw
+
+startDateTime <- lubridate::as_datetime("2023-01-23 17:00:00") # the half-hour it starts
+endDateTime <- lubridate::as_datetime("2023-01-23 17:30:00") # 
+
+res <- make_GwComparisonPlot(ngeso_dt_orig, session1DateStart, session1DateEnd)
+#res$p # the plot
+res$p
+
+makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+              cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+              digits = 3) # the table
 ```
+> Confounding factors:
+* recent temerature trends
+* recent holidays
+* etc
+
+>Note that the comparison plot/table shows the difference between the DSF event day and the previous similar days. This does not show what the event day energy use would have been in the absence of the intervention - we'd need a randomised control on the day for that.
 
 Octopus customers' 108 MW was `r round(100*(108/session1_mean_mw),3)` % of mean GB generation (`r session1_mean_gw` GW) over the hour of the session (see NG-ESO data above).
 
@@ -195,7 +319,208 @@ So:
 
 The trouble is... these are octopus customers self-selecting into a trial. You just have to [read the tweets](https://twitter.com/SavingSessions) to see that there are households with installed batteries, pausable heat pumps in well-insulated homes and EV V2G. At what point will we all be similarly equipped?
 
-## Session 2
+For fun:
+
+```{r}
+#| label: fig-firstSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+#| warning: false
+res <- make_ciComparisonPlot(ngeso_dt_orig, session1DateStart, session1DateEnd)
+res$p
+
+```
+
+## Session 2 (`r as.Date(session2DateStart)`)
+
+(Not all retailers may have taken part in this one)
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| label: makePlotSession2
+#| tbl-cap: "MW comparisons"
+#| warning: false
+
+res <- make_GwComparisonPlot(ngeso_dt_orig, session2DateStart, session2DateEnd)
+res$p # the plot
+
+makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+              cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+              digits = 3) # the table
+```
+
+For fun:
+
+```{r}
+#| label: fig-secondSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+#| warning: false
+res <- make_ciComparisonPlot(ngeso_dt_orig, session2DateStart, session2DateEnd)
+res$p
+
+```
+
+## Session 3 (`r as.Date(session3DateStart)`)
+
+(Not all retailers may have taken part in this one)
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| label: makePlotSession3
+#| tbl-cap: "MW comparisons"
+#| warning: false
+
+res <- make_GwComparisonPlot(ngeso_dt_orig, session3DateStart, session3DateEnd)
+res$p # the plot
+
+makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+              cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+              digits = 3) # the table
+```
+
+For fun:
+
+```{r}
+#| label: fig-thirdSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+#| warning: false
+res <- make_ciComparisonPlot(ngeso_dt_orig, session3DateStart, session3DateEnd)
+res$p
+
+```
+
+## Session 4 (`r as.Date(session4DateStart)`)
+
+(Not all retailers may have taken part in this one)
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| label: makePlotSession4
+#| tbl-cap: "MW comparisons"
+#| warning: false
+
+res <- make_GwComparisonPlot(ngeso_dt_orig, session4DateStart, session4DateEnd)
+res$p # the plot
+
+makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+              cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+              digits = 3) # the table
+```
+
+For fun:
+
+```{r}
+#| label: fig-fourthSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+#| warning: false
+res <- make_ciComparisonPlot(ngeso_dt_orig, session4DateStart, session4DateEnd)
+res$p
+
+```
+
+## Session 5 (`r as.Date(session5DateStart)`)
+
+(Not all retailers may have taken part in this one)
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| label: makePlotSession5
+#| tbl-cap: "MW comparisons"
+#| warning: false
+
+res <- make_GwComparisonPlot(ngeso_dt_orig, session5DateStart, session5DateEnd)
+res$p # the plot
+
+makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+              cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+              digits = 3) # the table
+```
+
+For fun:
+
+```{r}
+#| label: fig-fifthSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+#| warning: false
+res <- make_ciComparisonPlot(ngeso_dt_orig, session5DateStart, session5DateEnd)
+res$p
+
+```
+
+
+## Session 6 (`r as.Date(session6DateStart)`)
+
+(Not all retailers may have taken part in this one)
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| label: makePlotSession6
+#| tbl-cap: "MW comparisons"
+#| warning: false
+
+res <- make_GwComparisonPlot(ngeso_dt_orig, session6DateStart, session6DateEnd)
+res$p # the plot
+
+makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+              cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+              digits = 3) # the table
+```
+
+For fun:
+
+```{r}
+#| label: fig-sixthSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+#| warning: false
+res <- make_ciComparisonPlot(ngeso_dt_orig, session6DateStart, session6DateEnd)
+res$p
+
+```
+
+## Session 7 (`r as.Date(session7DateStart)`)
+
+This was a more generalised call for DSF
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| label: makePlotSession7
+#| tbl-cap: "MW comparisons"
+#| #| warning: false
+
+# catch if data not yet available
+if(as.Date(session7DateStart) < Sys.Date()){
+  res <- make_GwComparisonPlot(ngeso_dt_orig, session6DateStart, session6DateEnd)
+  res$p # the plot
+  
+  makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+                cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+                digits = 3) # the table
+} else {
+  message("Data not yet available, try later :-(")
+}
+
+```
+
+For fun:
+
+```{r}
+#| label: fig-seventhSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+#| warning: false
+if(as.Date(session7DateStart) < Sys.Date()){
+  res <- make_ciComparisonPlot(ngeso_dt_orig, session6DateStart, session6DateEnd)
+  res$p
+} else {
+  message("Data not yet available, try later :-(")
+}
+```
+:::
+
 
 # The end
 
