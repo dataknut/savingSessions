@@ -21,14 +21,13 @@ UK demand response experiments by NG-ESO and retailers such as [\@OctopusEnergy]
 
 Attempt to do some analysis of #savingSession(s) tweets.
 
-Inspired by [https://docs.ropensci.org/rtweet/](https://docs.ropensci.org/rtweet/)
+Inspired by <https://docs.ropensci.org/rtweet/>
 
 Last run at: `r Sys.time()`
 
 # Setup
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ## Code setup
 
 Part of <https://github.com/dataknut/savingSessions>
@@ -165,13 +164,11 @@ That produced a data file of `r nrow(uniq_tweetsDT)` tweets.
 We do NOT store the tweets in the repo for both [ethical](https://blogs.lse.ac.uk/impactofsocialsciences/2015/09/28/challenges-of-using-twitter-as-a-data-source-resources/) and practical reasons...
 
 Note also that we may not be collecting the complete dataset of hashtagged tweets due to the [intricacies of the twitter API](https://www.demos.co.uk/files/Road_to_representivity_final.pdf?1441811336).
-
 :::
 
 # Analysis
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ## Tweet time line
 
 @fig-timeLine shows the timing of tweets by hour.
@@ -257,7 +254,7 @@ words_per_day <- tweets_words_per_day %>% count(word, sort=TRUE)
 
 Make a word cloud for all words in all tweets.
 
-These _may_ not render the word 'savingsession' as it will be in all tweets due to the twitter search pattern used.
+These *may* not render the word 'savingsession' as it will be in all tweets due to the twitter search pattern used.
 
 ```{r}
 #| label: makeCloud
@@ -627,7 +624,6 @@ res <- makeSentimentCloud(session5Tweets,
                    sentiFilter = "negative")
 ```
 
-
 ## Session 6 sentiment
 
 Repeat for session 6 which was on `r as.Date(session6DateStart)`.
@@ -663,7 +659,6 @@ Negative words...
 res <- makeSentimentCloud(session6Tweets, 
                    sentiFilter = "negative")
 ```
-
 :::
 
 ```{r}
