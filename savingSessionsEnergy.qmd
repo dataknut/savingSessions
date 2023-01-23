@@ -35,6 +35,7 @@ library(ggplot2)
 library(hms)
 library(lubridate)
 
+esoDataPath <- path.expand("~/Dropbox/data/UK_NGESO/genMix/")
 ```
 
 # Getting data
@@ -47,8 +48,9 @@ Grab the most NG-ESO 'gen mix' [data](https://data.nationalgrideso.com/carbon-in
 #| label: getData
 #| warning: false
 
-esoF <- here::here("data", "latest_df_fuel_ckan.csv")
-if(file.exists(paste0(esoF, ".gz"))){
+esoF <- paste0(esoDataPath, "latest_df_fuel_ckan.csv")
+# check for gzipped version (see below)
+if(file.exists(paste0(esoF, ".gz"))){ 
   message("We already have a version saved to: ", paste0(esoF, ".gz"))
   message("Loading it...")
   ngeso_dt_orig <- data.table::fread(paste0(esoF, ".gz"))
@@ -57,10 +59,8 @@ if(file.exists(paste0(esoF, ".gz"))){
   ngeso_dt_orig <- data.table::fread("https://data.nationalgrideso.com/backend/dataset/88313ae5-94e4-4ddc-a790-593554d8c6b9/resource/f93d1835-75bc-43e5-84ad-12472b180a98/download/df_fuel_ckan.csv")
   # nice dateTime
   ngeso_dt_orig[, dv_start := lubridate::as_datetime(DATETIME)]
-  data.table::fwrite(ngeso_dt_orig, esoF)
+  data.table::fwrite(ngeso_dt_orig, esoF) # save locally for future re-use
   dkUtils::gzipIt(esoF)
-  data.table::fwrite(ngeso_dt_orig, "~/Dropbox/data/UK_NGESO/genMix/latest_df_fuel_ckan.csv") # save locally for future re-use
-  dkUtils::gzipIt("~/Dropbox/data/UK_NGESO/genMix/latest_df_fuel_ckan.csv")
 }
 
 # if older than 1 day, reload
