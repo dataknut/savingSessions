@@ -58,6 +58,8 @@ searchString <- hashTagR::createSearchFromTags(hashtags) # convert to rtweet sea
 
 #searchString <- "#SavingSession OR #SavingSessions" # edit to suit
 
+# ovo call it Shift & Save https://twitter.com/OVOEnergy/status/1597591031507476486
+
 dataPath <- "~/Dropbox/data/twitter/savingSessions/" # edit to suit
 
 session1DateStart <- lubridate::as_datetime("2022-11-15 17:00:00") # the half-hour it starts
@@ -66,10 +68,8 @@ session1DateEnd <- lubridate::as_datetime("2022-11-15 18:00:00") #
 session2DateStart <- lubridate::as_datetime("2022-11-22 17:30:00") # the half-hour it starts
 session2DateEnd <- lubridate::as_datetime("2022-11-22 18:30:00") # 
 
-
 session3DateStart <- lubridate::as_datetime("2022-11-30 17:30:00") # the half-hour it starts
 session3DateEnd <- lubridate::as_datetime("2022-11-30 18:30:00") # 
-
 
 session4DateStart <- lubridate::as_datetime("2022-12-01 17:00:00") # the half-hour it starts
 session4DateEnd <- lubridate::as_datetime("2022-12-01 18:00:00") # 
@@ -79,6 +79,9 @@ session5DateEnd <- lubridate::as_datetime("2022-12-12 18:30:00") #
 
 session6DateStart <- lubridate::as_datetime("2023-01-19 09:00:00") # the half-hour it starts
 session6DateEnd <- lubridate::as_datetime("2023-01-19 09:30:00") # 
+
+session7DateStart <- lubridate::as_datetime("2023-01-23 17:00:00") # the half-hour it starts
+session7DateEnd <- lubridate::as_datetime("2023-01-23 17:30:00") # 
 
 # functions ----
 
@@ -169,6 +172,7 @@ Note also that we may not be collecting the complete dataset of hashtagged tweet
 # Analysis
 
 ::: panel-tabset
+
 ## Tweet time line
 
 @fig-timeLine shows the timing of tweets by hour.
@@ -630,7 +634,7 @@ Repeat for session 6 which was on `r as.Date(session6DateStart)`.
 
 These are just the tweets for the day of the event and the day after...
 
-Positive words
+Positive words:
 
 ```{r}
 #| label: posCloudSession6
@@ -651,7 +655,7 @@ knitr::kable(res$nt,
   kable_styling()
 ```
 
-Negative words...
+Negative words:
 
 ```{r}
 #| label: negCloudSession6
@@ -659,6 +663,53 @@ Negative words...
 res <- makeSentimentCloud(session6Tweets, 
                    sentiFilter = "negative")
 ```
+:::
+
+```{r}
+#| label: theEnd
+```
+
+
+## Session 7 sentiment
+
+Repeat for session 7 which was on `r as.Date(session7DateStart)`.
+
+These are just the tweets for the day of the event and the day after...
+
+Positive words
+
+```{r}
+#| label: posCloudSession7
+#| warning: true
+
+session7Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session7DateStart) &
+                                 ba_created_at_date <= as.Date(session7DateEnd)+1]
+
+res <- makeSentimentCloud(session7Tweets, 
+                   sentiFilter = "positive")
+
+cap <- paste0("Session 7: ",
+              as.Date(session7DateStart),
+              " Number of unique words by sentiment"
+)
+knitr::kable(res$ft, 
+             caption = cap)  %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = cap) %>%
+  kable_styling()
+```
+
+Negative words...
+
+```{r}
+#| label: negCloudSession7
+#| warning: true
+res <- makeSentimentCloud(session6Tweets, 
+                   sentiFilter = "negative")
+```
+
 :::
 
 ```{r}
