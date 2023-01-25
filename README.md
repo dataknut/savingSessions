@@ -12,8 +12,10 @@ Analysis of UK NG-ESO electricity use during [Demand Flexibility Service](https:
 No longer updated - see integrated [electricity demand and twitter analysis](dfsReport.html)
 
  * #savingSession hashtag [tweet analysis](savingSessionsTweets.html) - includes positive & negative sentiment analysis like these:
+
  ![Positive sentiment (Session 5: 2022-12-12)](img/session5_pos.png)
  ![Negative sentiment (Session 5: 2022-12-12)](img/session5_neg.png)
+
  
  * #DemandFlexibilityService [tweet analysis](demandFlexibilityServiceTweets.html) - also includes positive & negative sentiment analysis
  
