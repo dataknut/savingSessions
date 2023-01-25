@@ -1,5 +1,6 @@
 ---
-title: "savingSessions: energy analysis"
+title: "GB demand flexibility service savingSessions"
+subtitle: "Analysis of GB electricity demand and twitter data"
 author: "Ben Anderson (@dataknut)"
 date: 'Last run at: `r Sys.time()`'
 format: 
@@ -28,7 +29,9 @@ Relevant media articles:
   * Tuesday 24th Jan 2023: [https://www.bbc.co.uk/news/business-64372264](https://www.bbc.co.uk/news/business-64372264)
 
 Questions:
+
 > Q1: Is there a noticeable 'dip' in demand? (Can we even tell?)
+
 > Q2: Do tweets tell us anything useful about the events?
 
 # Code setup
@@ -43,9 +46,9 @@ library(dkUtils)
 
 myLibs <- c("data.table",
             "dplyr",
-            "hashTagR",
             "flextable",
             "ggplot2",
+            "hashTagR",
             "hms",
             "knitr",
             "kableExtra",
@@ -199,7 +202,8 @@ session8End <- lubridate::as_datetime("2023-01-24 17:30:00") #
 
 # Data
 
-## Electricity demand use data
+## Electricity demand and carbon intensity data
+
 Use the half-hourly NG-ESO 'generation mix' [data](https://data.nationalgrideso.com/carbon-intensity1/historic-generation-mix) as a reasonable proxy for 'demand'. This also includes a useful estimate of carbon intensity.
 
 > Should probably use the [demand data](https://data.nationalgrideso.com/demand/historic-demand-data) instead as it includes embedded wind & solar.
@@ -263,11 +267,12 @@ Note also that we may not be collecting the complete dataset of hashtagged tweet
 
 It is important to note that both datasets are therefore likely to be partial.
 
-@getSavingSessionTweets shows the cumulative number of #savingSession tweets collected and marks the relevant events. Labels are likely to overlap where events are close together.
+@fig-getSavingSessionTweets shows the cumulative number of #savingSession tweets collected and marks the relevant events. Labels are likely to overlap where events are close together.
 
 ```{r}
-#| label: getSavingSessionTweets
+#| label: fig-getSavingSessionTweets
 #| fig-cap: "Cumulative number of #savingSession tweets collected"
+#| warning: FALSE
 
 hashtags <- c("savingSession", "savingSessions", "savingsession") # fairly sure it's case insensitive
 searchString <- hashTagR::createSearchFromTags(hashtags) # convert to rtweet search string
@@ -280,14 +285,16 @@ if(dir.exists(dataPath)){
   ofile <- path.expand(paste0(dataPath, "tw_",now,".csv"))
   tweetsDT <- hashTagR::getTweets(searchString, n = 20000)
   readr::write_csv(tweetsDT, file = ofile) # data.table breaks here
-  message("Retrieved ", nrow(tweetsDT), " tweets and saved them to ", ofile)
+  #message("Retrieved ", nrow(tweetsDT), " tweets and saved them to ", ofile)
 } else {
   message(dataPath, " not found!")
 }
 
 # now load all the tweet files we have matching that searchString
 
-tweetsDT <- hashTagR::loadTweets(path = dataPath, pattern = "*.csv")
+tweetsDT <- hashTagR::loadTweets(path = dataPath,
+                                 pattern = "*.csv",
+                                 noisy = FALSE)
 
 # clean up the tweet text to remove stuff we don't want.
 cleanTweets <- function(dt){
@@ -345,14 +352,16 @@ ymin <- min(plotDT$cumSum)
 
 add_all_session_labels(p)
 ```
-@getDemandFlexibilityServiceTweets shows the cumulative number of #DemandFlexibilityService tweets collected and marks the relevant events. Labels are likely to overlap where events are close together.
+
+@fig-getDemandFlexibilityServiceTweets shows the cumulative number of #DemandFlexibilityService tweets collected and marks the relevant events. Labels are likely to overlap where events are close together.
 
 > NB: data collection for this hashtag only started on 23rd January - it looks like twitter's search API does not return tweets more than x days old. People were tweeting this hashtag [earlier than January](https://twitter.com/hashtag/DemandFlexibilityService?src=hashtag_click&f=live)...
 
 ```{r}
-#| label: getDemandFlexibilityServiceTweets
+#| label: fig-getDemandFlexibilityServiceTweets
 #| fig-cap: "Cumulative number of #DemandFlexibilityService tweets collected"
-#| 
+#| warning: FALSE
+
 hashtags <- c("DemandFlexibilityService") # fairly sure it's case insensitive
 searchString <- hashTagR::createSearchFromTags(hashtags) # convert to rtweet search string
 
@@ -364,14 +373,16 @@ if(dir.exists(dataPath)){
   ofile <- path.expand(paste0(dataPath, "tw_",now,".csv"))
   tweetsDT <- hashTagR::getTweets(searchString, n = 20000)
   readr::write_csv(tweetsDT, file = ofile) # data.table breaks here
-  message("Retrieved ", nrow(tweetsDT), " tweets and saved them to ", ofile)
+  #message("Retrieved ", nrow(tweetsDT), " tweets and saved them to ", ofile)
 } else {
   message(dataPath, " not found!")
 }
 
 # now load all the tweet files we have matching that searchString
 
-tweetsDT <- hashTagR::loadTweets(path = dataPath, pattern = "*.csv")
+tweetsDT <- hashTagR::loadTweets(path = dataPath, 
+                                 pattern = "*.csv",
+                                 noisy = FALSE)
 
 uniq_demandFlexibilityServiceTweetsDT <- cleanTweets(hashTagR::processTweets(tweetsDT))
 
@@ -425,7 +436,7 @@ Remove stop words (to, the, and, a, for, etc) & profanity etc from the tweets an
 
 In each case we report the number of negative and positive codings (according to `tidytext::get_sentiments("bing")`) for the unique words. This will add up to the Number of unique words by sentiment. We then report the total frequency of words that are negative or positive (which will add up to the total number of words).
 
-Remember the size of the words in the word cloud is relative to the count of all negative words.
+Remember the size of the (positive/negative) words in the word cloud is relative to the count of all (positive/negative) words in the wordcloud, not the total word count.
 
 ## Session 1 (Octopus: `r pdt(session1Start)`)
 
@@ -442,7 +453,7 @@ But <https://www.current-news.co.uk/news/octopus-energy-customers-provide-108mw-
 
 > "if the program was scaled to _all electric smart meter customers_ with all supplier\[s\] in Great Britain, it could create over 1GW of flexible energy load"
 
-The following plot compares the energy use during the *DFS* event with mean energy use over the last 10 days.
+The following plot compares GB electricity demand during the *DFS* event with mean GB electricity demand over the last n days.
 
 ```{r}
 #| label: makePlotSession1
