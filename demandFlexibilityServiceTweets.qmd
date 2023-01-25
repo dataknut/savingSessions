@@ -15,11 +15,15 @@ execute:
 editor: visual
 ---
 
+# No longer updated
+
+See the [integrated electricity demand and twitter report](dfsReport.html) instead.
+
 # Background
 
 UK demand response experiments by NG-ESO and retailers
 
-Attempt to do some analysis of ##DemandFlexibilityService (s) tweets.
+Attempt to do some analysis of #DemandFlexibilityService (s) tweets.
 
 Inspired by [https://docs.ropensci.org/rtweet/](https://docs.ropensci.org/rtweet/)
 
@@ -63,6 +67,8 @@ dataPath <- "~/Dropbox/data/twitter/demandFlexibilityService/" # edit to suit
 session1DateStart <- lubridate::as_datetime("2023-01-23 17:00:00") # the half-hour it starts
 session1DateEnd <- lubridate::as_datetime("2023-01-23 17:30:00") # 
 
+session2DateStart <- lubridate::as_datetime("2023-01-24 16:30:00") # the half-hour it starts
+session2DateEnd <- lubridate::as_datetime("2023-01-24 17:30:00") # 
 
 
 # functions ----
@@ -75,7 +81,13 @@ add_sessionDates <- function(p){
            ymin = ymin, ymax = ymax,
            alpha = periodAlpha, fill = periodFill) +
     annotate("text", x = session1DateStart, vjust=-0.1, angle=90,
-             y = ymax*0.5, label = paste0("Session 1: ", lubridate::as_date(session1DateStart))) 
+             y = ymax*0.5, label = paste0("Session 1: ", lubridate::as_date(session1DateStart))) +
+    annotate("rect", xmin = session2DateStart,
+           xmax = session2DateEnd,
+           ymin = ymin, ymax = ymax,
+           alpha = periodAlpha, fill = periodFill) +
+    annotate("text", x = session2DateStart, vjust=-0.1, angle=90,
+             y = ymax*0.5, label = paste0("Session 1: ", lubridate::as_date(session2DateStart))) 
   return(p)
 }
 ```
@@ -347,7 +359,10 @@ p <- ggplot2::ggplot(plot_daily_sentiment, aes(
 
 ## Session 1 sentiment
 
-Repeat these negative/postive word clouds but just for the first session which was on `r as.Date(session1DateStart)`.
+ * `r session1DateStart` to
+ * `r session1DateEnd + 30*60`
+ 
+Repeat these negative/positive word clouds but just for the first session.
 
 These are just the tweets for the day of the event and the day after...
 
@@ -358,7 +373,7 @@ Positive words...
 #| warning: true
 
 # default cloud = positive
-makeSentimentCloud <- function(dt, sentiFilter = "positive"){
+  makeSentimentCloud <- function(dt, sentiFilter = "positive"){
   # start with the selected tweets
   # grab the words
   tweets_words <-  dt %>%
@@ -417,6 +432,8 @@ knitr::kable(res$nt,
              caption = "Number of words") %>%
   kable_styling()
 
+
+
 ```
 
 Negative words...
@@ -427,6 +444,56 @@ Negative words...
 
 res <- makeSentimentCloud(session1Tweets, 
                    sentiFilter = "negative")
+```
+
+## Session 2 sentiment
+
+ * `r session2DateStart` to
+ * `r session2DateEnd + 30*60`
+ 
+Repeat these negative/positive word clouds but for the second session.
+
+These are just the tweets for the day of the event and the day after...
+
+Positive words...
+
+```{r}
+#| label: posCloudSessionTwo
+#| warning: true
+
+# default cloud = positive
+
+if(session2DateStart > Sys.Date()){ # it's in the future
+session1Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session2DateStart) &
+                                 ba_created_at_date <= as.Date(session2DateEnd)+1]
+
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(session1Tweets, 
+                   sentiFilter = "positive")
+
+knitr::kable(res$ft, 
+             caption = "Number of unique words by sentiment") %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = "Number of words") %>%
+  kable_styling()
+} else {
+  message("No data yet, try later!")
+}
+```
+
+Negative words...
+
+```{r}
+#| label: negCloudSessionTwo
+#| warning: true
+if(session2DateStart > Sys.Date()){
+res <- makeSentimentCloud(session1Tweets, 
+                   sentiFilter = "negative")
+} else {
+  message("No data yet, try later!")
+}
 ```
 
 :::
