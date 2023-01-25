@@ -15,6 +15,10 @@ execute:
 editor: visual
 ---
 
+# No longer updated
+
+See the [integrated electricity demand and twitter report](dfsReport.html) instead.
+
 # Background
 
 UK demand response experiments by NG-ESO and retailers such as [\@OctopusEnergy](https://twitter.com/SavingSessions)
@@ -83,52 +87,69 @@ session6DateEnd <- lubridate::as_datetime("2023-01-19 09:30:00") #
 session7DateStart <- lubridate::as_datetime("2023-01-23 17:00:00") # the half-hour it starts
 session7DateEnd <- lubridate::as_datetime("2023-01-23 17:30:00") # 
 
+session8DateStart <- lubridate::as_datetime("2023-01-24 16:30:00") # the half-hour it starts
+session8DateEnd <- lubridate::as_datetime("2023-01-24 17:30:00") # 
+
 # functions ----
 
 add_sessionDates <- function(p){
   # add session dates to plot
   p <- p +
-  annotate("rect", xmin = session1DateStart,
-           xmax = session1DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
+    annotate("rect", xmin = session1DateStart,
+             xmax = session1DateEnd,
+             ymin = ymin, ymax = ymax,
+             alpha = periodAlpha, fill = periodFill) +
     annotate("text", x = session1DateStart-(24*60*60), vjust=-0.1, angle=90,
              y = ymax*0.5, label = paste0("Session 1: ", lubridate::as_date(session1DateStart))) + 
-  annotate("rect", xmin = session2DateStart,
-           xmax = session2DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session2DateStart-(24*60*60), vjust=-0.1, angle=90,
+    annotate("rect", xmin = session2DateStart,
+             xmax = session2DateEnd,
+             ymin = ymin, ymax = ymax,
+             alpha = periodAlpha, fill = periodFill) +
+    annotate("text", x = session2DateStart-(24*60*60), vjust=-0.1, angle=90,
              y = ymax*0.5, label = paste0("Session 2: ",
                                           lubridate::as_date(session2DateStart))) + 
-  annotate("rect", xmin = session3DateStart,
-           xmax = session3DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session3DateStart-(24*60*60), vjust=-0.1, angle=90,
+    annotate("rect", xmin = session3DateStart,
+             xmax = session3DateEnd,
+             ymin = ymin, ymax = ymax,
+             alpha = periodAlpha, fill = periodFill) +
+    annotate("text", x = session3DateStart-(24*60*60), vjust=-0.1, angle=90,
              y = ymax*0.5, label = paste0("Session 3: ",
                                           lubridate::as_date(session3DateStart)))  +
     annotate("rect", xmin = session4DateStart,
-           xmax = session4DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session4DateStart+(48*60*60), vjust=-0.1, angle=90,
+             xmax = session4DateEnd,
+             ymin = ymin, ymax = ymax,
+             alpha = periodAlpha, fill = periodFill) +
+    annotate("text", x = session4DateStart+(48*60*60), vjust=-0.1, angle=90,
              y = ymax*0.5, label = paste0("Session 4: ",
                                           lubridate::as_date(session4DateStart))) +
-      annotate("rect", xmin = session5DateStart,
-           xmax = session5DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session5DateStart-(24*60*60), vjust=-0.1, angle=90,
+    annotate("rect", xmin = session5DateStart,
+             xmax = session5DateEnd,
+             ymin = ymin, ymax = ymax,
+             alpha = periodAlpha, fill = periodFill) +
+    annotate("text", x = session5DateStart-(24*60*60), vjust=-0.1, angle=90,
              y = ymax*0.5, label = paste0("Session 5: ",
                                           lubridate::as_date(session5DateStart))) +
-  annotate("rect", xmin = session6DateStart,
-           xmax = session6DateEnd,
-           ymin = ymin, ymax = ymax,
-           alpha = periodAlpha, fill = periodFill) +
-        annotate("text", x = session6DateStart-(24*60*60), vjust=-0.1, angle=90,
+    annotate("rect", xmin = session6DateStart,
+             xmax = session6DateEnd,
+             ymin = ymin, ymax = ymax,
+             alpha = periodAlpha, fill = periodFill) +
+    annotate("text", x = session6DateStart-(24*60*60), vjust=-0.1, angle=90,
              y = ymax*0.5, label = paste0("Session 6: ",
-                                          lubridate::as_date(session6DateStart)))
+                                          lubridate::as_date(session6DateStart))) +
+    annotate("rect", xmin = session7DateStart,
+             xmax = session7DateEnd,
+             ymin = ymin, ymax = ymax,
+             alpha = periodAlpha, fill = periodFill) +
+    annotate("text", x = session7DateStart-(24*60*60), vjust=-0.1, angle=90,
+             y = ymax*0.5, label = paste0("Session 7: ",
+                                          lubridate::as_date(session7DateStart))) +
+    annotate("rect", xmin = session8DateStart,
+             xmax = session8DateEnd,
+             ymin = ymin, ymax = ymax,
+             alpha = periodAlpha, fill = periodFill) +
+    annotate("text", x = session8DateStart-(24*60*60), vjust=-0.1, angle=90,
+             y = ymax*0.5, label = paste0("Session 8: ",
+                                          lubridate::as_date(session8DateStart)))
   return(p)
 }
 ```
@@ -171,9 +192,7 @@ Note also that we may not be collecting the complete dataset of hashtagged tweet
 
 # Analysis
 
-::: panel-tabset
-
-## Tweet time line
+## Overall tweet time line
 
 @fig-timeLine shows the timing of tweets by hour.
 
@@ -218,9 +237,9 @@ p <- ggplot2::ggplot(plotDT, aes(x = Time, y = cumSum)) +
 add_sessionDates(p)
 ```
 
-We see roughly the kind of uptick in tweets for Session 2 that we saw for Session 1...
+There are interesting variations in the 'attention' each session gets - if we can assume that the number of tweets is some indicator of 'attention'.
 
-## Content analysis
+## Overall content analysis
 
 Let's try a word cloud.
 
@@ -397,16 +416,24 @@ p <- ggplot2::ggplot(plot_daily_sentiment, aes(
 #add_sessionDates(p) only works on half-hourly x axis
 ```
 
-## Session 1 sentiment
+## Session by session sentiment analysis
 
-Repeat these negative/postive word clouds but just for the first session which was on `r as.Date(session1DateStart)`.
+```{r}
+startDateTime <- session1DateStart
+startDate_chr <- strftime(session1DateStart, "%a %d %b %Y")
+endDateTime <- session1DateEnd
+sessionNumber <- 1
+```
+
+### Session 1 - (`r startDate_chr`)
+
+Repeat these negative/positive word clouds for Session `r sessionNumber` which was on `r startDate_chr`.
 
 These are just the tweets for the day of the event and the day after...
 
-Positive words...
+*Positive words...*
 
 ```{r}
-#| label: posCloudSessionOne
 #| warning: true
 
 # default cloud = positive
@@ -454,263 +481,395 @@ makeSentimentCloud <- function(dt, sentiFilter = "positive"){
   return(results)
 }
 
-session1Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session1DateStart) &
-                                 ba_created_at_date <= as.Date(session1DateEnd)+1]
+sessionTweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(startDateTime) & # on the day
+                                 ba_created_at_date <= as.Date(endDateTime)+1] # day plus 1
 
 # renders plot immediately (not sure why)
-res <- makeSentimentCloud(session1Tweets, 
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
-knitr::kable(res$ft, 
-             caption = "Number of unique words by sentiment") %>%
-  kable_styling()
-
-knitr::kable(res$nt, 
-             caption = "Number of words") %>%
-  kable_styling()
 
 ```
 
-Negative words...
+*Negative words...*
 
 ```{r}
-#| label: negCloudSessionOne
 #| warning: true
 
-res <- makeSentimentCloud(session1Tweets, 
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "negative")
 ```
 
-## Session 2 sentiment
+Total word and unique word counts...
 
-Repeat for session 2 which was on `r as.Date(session2DateStart)`.
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Session ", sessionNumber, " : Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Session ", sessionNumber, " : Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+```{r}
+startDateTime <- session2DateStart
+startDate_chr <- strftime(session2DateStart, "%a %d %b %Y")
+endDateTime <- session2DateEnd
+sessionNumber <- 2
+```
+
+### Session 2 - (`r startDate_chr`)
+
+Repeat these negative/positive word clouds for Session `r sessionNumber` which was on `r startDate_chr`.
 
 These are just the tweets for the day of the event and the day after...
 
-Positive words...
+*Positive words...*
 
 ```{r}
-#| label: posCloudSession2
 #| warning: true
-session2Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session2DateStart) &
-                                 ba_created_at_date <= as.Date(session2DateEnd)+1]
 
+sessionTweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(startDateTime) & # on the day
+                                 ba_created_at_date <= as.Date(endDateTime)+1] # day plus 1
 
-res <- makeSentimentCloud(session2Tweets, 
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
 
-knitr::kable(res$ft, 
-             caption = "Number of unique words by sentiment") %>%
-  kable_styling()
-
-knitr::kable(res$nt, 
-             caption = "Number of words by sentiment by sentiment") %>%
-  kable_styling()
 ```
 
-Negative words...
+*Negative words...*
 
 ```{r}
-#| label: negCloudSession2
 #| warning: true
 
-res <- makeSentimentCloud(session2Tweets, 
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "negative")
 ```
 
-## Session 3 sentiment
+Total word and unique word counts...
 
-Repeat for session 3 which which was on `r as.Date(session3DateStart)`.
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Session ", sessionNumber, " : Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Session ", sessionNumber, " : Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+```{r}
+startDateTime <- session3DateStart
+startDate_chr <- strftime(session3DateStart, "%a %d %b %Y")
+endDateTime <- session3DateEnd
+sessionNumber <- 3
+```
+
+### Session 3 - (`r startDate_chr`)
+
+Repeat these negative/positive word clouds for Session `r sessionNumber` which was on `r startDate_chr`.
 
 These are just the tweets for the day of the event and the day after...
 
-Positive words...
+*Positive words...*
 
 ```{r}
-#| label: posCloudSession3
 #| warning: true
 
-session3Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session3DateStart) &
-                                 ba_created_at_date <= as.Date(session3DateEnd)+1]
+sessionTweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(startDateTime) & # on the day
+                                 ba_created_at_date <= as.Date(endDateTime)+1] # day plus 1
 
-
-res <- makeSentimentCloud(session3Tweets, 
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
 
-knitr::kable(res$ft, 
-             caption = "Number of unique words by sentiment") %>%
-  kable_styling()
-
-knitr::kable(res$nt, 
-             caption = "Number of words by sentiment") %>%
-  kable_styling()
 ```
 
-Negative words
+*Negative words...*
 
 ```{r}
-#| label: negCloudSession3
 #| warning: true
 
-res <- makeSentimentCloud(session3Tweets, 
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "negative")
 ```
 
-## Session 4 sentiment
+Total word and unique word counts...
 
-Repeat for session 4 which was on `r as.Date(session4DateStart)`.
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Session ", sessionNumber, " : Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Session ", sessionNumber, " : Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+```{r}
+startDateTime <- session4DateStart
+startDate_chr <- strftime(session4DateStart, "%a %d %b %Y")
+endDateTime <- session4DateEnd
+sessionNumber <- 4
+```
+
+### Session 4 - (`r startDate_chr`)
+
+Repeat these negative/positive word clouds for Session `r sessionNumber` which was on `r startDate_chr`.
 
 These are just the tweets for the day of the event and the day after...
 
-Positive words...
+*Positive words...*
 
 ```{r}
-#| label: posCloudSession4
 #| warning: true
 
-session4Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session4DateStart) &
-                                 ba_created_at_date <= as.Date(session4DateEnd)+1]
+sessionTweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(startDateTime) & # on the day
+                                 ba_created_at_date <= as.Date(endDateTime)+1] # day plus 1
 
-res <- makeSentimentCloud(session4Tweets, 
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
 
-knitr::kable(res$ft, 
-             caption = "Number of unique words by sentiment") %>%
-  kable_styling()
-
-knitr::kable(res$nt, 
-             caption = "Number of words by sentiment") %>%
-  kable_styling()
 ```
 
-Negative words...
+*Negative words...*
 
 ```{r}
-#| label: negCloudSession4
 #| warning: true
-res <- makeSentimentCloud(session4Tweets, 
+
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "negative")
 ```
 
-## Session 5 sentiment
+Total word and unique word counts...
 
-Repeat for session 5 which was on `r as.Date(session5DateStart)`.
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Session ", sessionNumber, " : Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Session ", sessionNumber, " : Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+```{r}
+startDateTime <- session5DateStart
+startDate_chr <- strftime(session5DateStart, "%a %d %b %Y")
+endDateTime <- session5DateEnd
+sessionNumber <- 5
+```
+
+### Session 5 - (`r startDate_chr`)
+
+Repeat these negative/positive word clouds for Session `r sessionNumber` which was on `r startDate_chr`.
 
 These are just the tweets for the day of the event and the day after...
 
-Positive words
+*Positive words...*
 
 ```{r}
-#| label: posCloudSession5
 #| warning: true
 
-session5Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session5DateStart) &
-                                 ba_created_at_date <= as.Date(session5DateEnd)+1]
+sessionTweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(startDateTime) & # on the day
+                                 ba_created_at_date <= as.Date(endDateTime)+1] # day plus 1
 
-res <- makeSentimentCloud(session5Tweets, 
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
 
-knitr::kable(res$ft, 
-             caption = "Number of unique words by sentiment") %>%
-  kable_styling()
-
-knitr::kable(res$nt, 
-             caption = "Number of words by sentiment") %>%
-  kable_styling()
 ```
 
-Negative words...
+*Negative words...*
 
 ```{r}
-#| label: negCloudSession5
 #| warning: true
-res <- makeSentimentCloud(session5Tweets, 
+
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "negative")
 ```
 
-## Session 6 sentiment
+Total word and unique word counts...
 
-Repeat for session 6 which was on `r as.Date(session6DateStart)`.
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Session ", sessionNumber, " : Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Session ", sessionNumber, " : Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+```{r}
+startDateTime <- session6DateStart
+startDate_chr <- strftime(session6DateStart, "%a %d %b %Y")
+endDateTime <- session6DateEnd
+sessionNumber <- 6
+```
+
+### Session 6 - (`r startDate_chr`)
+
+Repeat these negative/positive word clouds for Session `r sessionNumber` which was on `r startDate_chr`.
 
 These are just the tweets for the day of the event and the day after...
 
-Positive words:
+*Positive words...*
 
 ```{r}
-#| label: posCloudSession6
 #| warning: true
 
-session6Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session6DateStart) &
-                                 ba_created_at_date <= as.Date(session6DateEnd)+1]
+sessionTweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(startDateTime) & # on the day
+                                 ba_created_at_date <= as.Date(endDateTime)+1] # day plus 1
 
-res <- makeSentimentCloud(session6Tweets, 
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
 
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
 knitr::kable(res$ft, 
-             caption = "Number of unique words by sentiment") %>%
+             caption = paste0("Session ", sessionNumber, " : Number of unique words by sentiment")
+             ) %>%
   kable_styling()
 
 knitr::kable(res$nt, 
-             caption = "Number of words by sentiment") %>%
+             caption = paste0("Session ", sessionNumber, " : Number of words by sentiment")
+             ) %>%
   kable_styling()
-```
 
-Negative words:
+```
 
 ```{r}
-#| label: negCloudSession6
-#| warning: true
-res <- makeSentimentCloud(session6Tweets, 
-                   sentiFilter = "negative")
-```
-:::
-
-```{r}
-#| label: theEnd
+startDateTime <- session7DateStart
+startDate_chr <- strftime(session7DateStart, "%a %d %b %Y")
+endDateTime <- session7DateEnd
+sessionNumber <- 7
 ```
 
+### Session 7 - (`r startDate_chr`)
 
-## Session 7 sentiment
-
-Repeat for session 7 which was on `r as.Date(session7DateStart)`.
+Repeat these negative/positive word clouds for Session `r sessionNumber` which was on `r startDate_chr`.
 
 These are just the tweets for the day of the event and the day after...
 
-Positive words
+*Positive words...*
 
 ```{r}
-#| label: posCloudSession7
 #| warning: true
 
-session7Tweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(session7DateStart) &
-                                 ba_created_at_date <= as.Date(session7DateEnd)+1]
+sessionTweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(startDateTime) & # on the day
+                                 ba_created_at_date <= as.Date(endDateTime)+1] # day plus 1
 
-res <- makeSentimentCloud(session7Tweets, 
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
 
-cap <- paste0("Session 7: ",
-              as.Date(session7DateStart),
-              " Number of unique words by sentiment"
-)
-knitr::kable(res$ft, 
-             caption = cap)  %>%
-  kable_styling()
-
-knitr::kable(res$nt, 
-             caption = cap) %>%
-  kable_styling()
 ```
 
-Negative words...
+*Negative words...*
 
 ```{r}
-#| label: negCloudSession7
 #| warning: true
-res <- makeSentimentCloud(session6Tweets, 
+
+res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "negative")
 ```
 
-:::
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Session ", sessionNumber, " : Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Session ", sessionNumber, " : Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+```{r}
+startDateTime <- session8DateStart
+startDate_chr <- strftime(session8DateStart, "%a %d %b %Y")
+endDateTime <- session8DateEnd
+sessionNumber <- 8
+```
+
+### Session 8 - (`r startDate_chr`)
+
+Repeat these negative/positive word clouds for Session `r sessionNumber` which was on `r startDate_chr`.
+
+These are just the tweets for the day of the event and the day after...
+
+*Positive words...*
+
+```{r}
+#| warning: true
+
+sessionTweets <- uniq_tweetsDT[ba_created_at_date >= as.Date(startDateTime) & # on the day
+                                 ba_created_at_date <= as.Date(endDateTime)+1] # day plus 1
+
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "positive")
+
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Session ", sessionNumber, " : Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Session ", sessionNumber, " : Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
 
 ```{r}
 #| label: theEnd
