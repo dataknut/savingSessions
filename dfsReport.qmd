@@ -59,6 +59,7 @@ myLibs <- c("data.table",
             "wordcloud")
 
 # load the libraries, install if we don't have them
+print("Loading libraries...")
 dkUtils::loadLibraries(myLibs) # get it here: devtools::install_github("dataknut/dkUtils")
 
 esoDataPath <- path.expand("~/Dropbox/data/UK_NGESO/genMix/")
@@ -96,27 +97,48 @@ make_comparisonPlot <- function(dt, # half hourly data
   res <- list() # results holder
   dt[, dv_hms := hms::as_hms(dv_start)]
   
-  sessionDate <- lubridate::date(endDateTime) # you'll see why
+  sessionDate <- lubridate::date(startDateTime) # you'll see why
+  if(lubridate::wday(startDateTime) < 6){
+    sessionDay <- "weekday" # you'll see why
+  } else {
+    sessionDay <- "weekend"
+  }
+  # 1 = Sunday, 7 = Saturday etc
+  dt[, ba_wday := lubridate::wday(dv_start, label = TRUE)]
+  dt[, ba_wd := ifelse(lubridate::wday(dv_start) > 1 & lubridate::wday(dv_start) < 7,
+                       "weekday",
+                       "weekend")]
   # extract and aggregate baseline
-  baseline_HalfHourlyDT <- dt[dv_date != sessionDate & # not the session day
-                                dv_date > sessionDate - (timeLag + 1) & # n days
-                               dv_date < sessionDate,
-                              .(y_mean = mean(get(yVar))), # mean of the chosen variable
-                              keyby = .(hms = dv_hms)
-                              ]
+  # first get similar days (weekdays or weekends as needed)
   
-  res$nCompDays <-timeLag
+  similarDays <- dt[dv_date != sessionDate & ba_wd == sessionDay &
+                      dv_date < sessionDate]
+  uniqueN(similarDays$dv_date)
+  dates <- tail(similarDays[,(nObs = .N), keyby = .(dv_date)], timeLag) # get the most recent n = timeLag days
+  datesToGet <- dates[, dv_date]
+  daysWeWant <- similarDays[dv_date %in% datesToGet]
+  uniqueN(daysWeWant$dv_date)
+  
+  # then get the n = timeLag most recent
+  baseline_HalfHourlyDT <- daysWeWant[,
+                              .(y_mean = mean(get(yVar))), # mean of the chosen variable
+                              keyby = .(hms = dv_hms, 
+                                        ba_wd) # to check
+                              ]
+  #table(baseline_HalfHourlyDT$ba_wday)
+  res$nCompDays <- uniqueN(daysWeWant$dv_date) # just to be sure
   baseline_HalfHourlyDT[, legend_lab := paste0("Comparison mean")]
   # extract session day
   session_HalfHourlyDT <- dt[dv_date == sessionDate, # the session day,
                               .(y_mean = mean(get(yVar))), # mean of just one value but this is just to match baseline variable names
-                              keyby = .(hms = dv_hms)
+                              keyby = .(hms = dv_hms,
+                                        ba_wd)
                               ]
   session_HalfHourlyDT[, legend_lab := "Saving session"]
   
   # combine them in long form for ggplot
   plotDT <- rbind(baseline_HalfHourlyDT, session_HalfHourlyDT)
-  
+  table(plotDT$ba_wd)
   plotDT[, adjusted_hms := hms::as_hms(hms + (15*60))] # so they plot at centres of half-hours
   
   periodAlpha <- 0.3 #  shaded rects on plots
@@ -418,12 +440,12 @@ add_ngeso_session_labels(p)
 
 Q1: Demand reduction
 
-Simple comparison of the 'demand response session' day half-hourly demand with the mean half-hourly demand for the previous n days.
+Simple comparison of the 'demand response session' day half-hourly demand with the mean half-hourly demand for the previous n weekdays or weekend days as appropriate. Default n is 10.
 
 All sorts of caveats apply:
 
  * not all of these sessions were national 'live' events, some were trials by a single retailer (Octopus)
- * we may not be comparing like with like (cold vs warm, weekday vs weekend etc)
+ * even though we compare with weekdays or weekend days as appropriate, we may still not be comparing like with like (cold vs warm, holiday vs non-holiday etc)
  * we can't tell from this analysis what demand would have looked like _without_ the demand response intervention. That would require all the retailers to aggregate the 'savings' they estimate... or a randomised control trial
 
 Q2: Twitter sentiment analysis
@@ -453,7 +475,7 @@ But <https://www.current-news.co.uk/news/octopus-energy-customers-provide-108mw-
 
 > "if the program was scaled to _all electric smart meter customers_ with all supplier\[s\] in Great Britain, it could create over 1GW of flexible energy load"
 
-The following plot compares GB electricity demand during the *DFS* event with mean GB electricity demand over the last n days.
+The following plot compares GB electricity demand during the *DFS* event with mean GB electricity demand over the last n similar days (i.e. weekdays or weekends as appropriate).
 
 ```{r}
 #| label: makePlotSession1
