@@ -219,6 +219,9 @@ session7End <- lubridate::as_datetime("2023-01-23 17:30:00") #
 
 session8Start <- lubridate::as_datetime("2023-01-24 16:30:00") # the half-hour it starts
 session8End <- lubridate::as_datetime("2023-01-24 17:30:00") # 
+
+session9Start <- lubridate::as_datetime("2023-01-30 09:00:00") # the half-hour it starts
+session9End <- lubridate::as_datetime("2023-01-30 09:30:00") # 
 ```
 
 
@@ -1214,7 +1217,7 @@ This was another [generalised call](https://www.bbc.co.uk/news/business-64372264
 
 The same caveats about the comparisons apply here...
 
-Also this ecent followed very soon after the last one so this will affect the comparison 'baseline' (previous n days).
+Also this event followed very soon after the last one so this will affect the comparison 'baseline' (previous n days).
 
 ```{r}
 #| label: makePlotSession8
@@ -1318,6 +1321,150 @@ Number of tweets: `r nrow(sessionTweets)`
 
 sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(session8Start) & # on the day
                                  ba_created_at_date <= as.Date(session8End)+1] # day plus 1
+
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "positive")
+
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
+
+## Session 9 (Octopus: `r pdt(session9Start)`)
+
+ * `r session9Start` to
+ * `r session9End + 30*60`
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| label: makePlotSession9
+#| tbl-cap: "MW comparisons"
+
+# catch if data not yet available
+if(as.Date(session9Start) < Sys.Date()){
+  res <- make_comparisonPlot(ngeso_dt_orig, session9Start, session9End)
+  print(res$p) # the plot
+  
+  makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+                cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+                digits = 1) # the table
+} else {
+  message("Data not yet available, try later :-(")
+}
+
+```
+
+### Carbon intensity
+
+And just to keep in mind the carbon context:
+
+```{r}
+#| label: fig-ninthSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+
+if(as.Date(session9Start) < Sys.Date()){
+res <- make_comparisonPlot(ngeso_dt_orig, session9Start, session9End, 
+                           yVar = "CARBON_INTENSITY",
+                           yVarLab = "g CO2/kWh")
+res$p
+} else {
+  message("Data not yet available, try later :-(")
+}
+```
+
+Turning to hashtags, we have both #savingSessions and #demandFlexibilityService tweets for this event.
+
+### #savingSessions tweets
+
+```{r}
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session9Start) & # on the day
+                                 ba_created_at_date <= as.Date(session9End)+1] # day plus 1
+```
+
+Number of tweets: `r nrow(sessionTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session9Start) & # on the day
+                                 ba_created_at_date <= as.Date(session9End)+1] # day plus 1
+
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "positive")
+
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
+### #demandFlexibilityService tweets
+
+Unlikely to be many of these as this ws not a system-wide NG-ESO 'live' event.
+
+```{r}
+sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(session9Start) & # on the day
+                                 ba_created_at_date <= as.Date(session9End)+1] # day plus 1
+```
+
+Number of tweets: `r nrow(sessionTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+
+sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(session9Start) & # on the day
+                                 ba_created_at_date <= as.Date(session9End)+1] # day plus 1
 
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
