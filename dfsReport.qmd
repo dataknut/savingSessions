@@ -191,37 +191,12 @@ pdt <- function(t){ # make a pretty date
 pd <- function(t){ # make a pretty date
   strftime(t, "%a %d %b %Y")
 }
-```
 
-```{r}
-#| label: setSessionDates
+# parameters ----
+# > load session dates from file ----
 
-session1Start <- lubridate::as_datetime("2022-11-15 17:00:00") # the half-hour it starts
-session1End <- lubridate::as_datetime("2022-11-15 17:30:00") # the start of the half-hour it ends (makes data selection easier)
+savingSessions_dateTimes_DT <- data.table::as.data.table(readxl::read_xlsx(here::here("data", "savingSessions_dateTimes.xlsx")))
 
-session2Start <- lubridate::as_datetime("2022-11-22 17:30:00") # the half-hour it starts
-session2End <- lubridate::as_datetime("2022-11-22 18:00:00") # 
-
-session3Start <- lubridate::as_datetime("2022-11-30 17:30:00") # the half-hour it starts
-session3End <- lubridate::as_datetime("2022-11-30 18:00:00") # 
-
-session4Start <- lubridate::as_datetime("2022-12-01 17:00:00") # the half-hour it starts
-session4End <- lubridate::as_datetime("2022-12-01 17:30:00") # 
-
-session5Start <- lubridate::as_datetime("2022-12-12 17:00:00") # the half-hour it starts
-session5End <- lubridate::as_datetime("2022-12-12 17:30:00") # 
-
-session6Start <- lubridate::as_datetime("2023-01-19 09:00:00") # the half-hour it starts
-session6End <- lubridate::as_datetime("2023-01-19 09:30:00") # 
-
-session7Start <- lubridate::as_datetime("2023-01-23 17:00:00") # the half-hour it starts
-session7End <- lubridate::as_datetime("2023-01-23 17:30:00") # 
-
-session8Start <- lubridate::as_datetime("2023-01-24 16:30:00") # the half-hour it starts
-session8End <- lubridate::as_datetime("2023-01-24 17:30:00") # 
-
-session9Start <- lubridate::as_datetime("2023-01-30 09:00:00") # the half-hour it starts
-session9End <- lubridate::as_datetime("2023-01-30 09:30:00") # 
 ```
 
 
@@ -357,16 +332,13 @@ add_session_label <- function(p, startDateTime, endDatetime){
 }
 
 add_all_session_labels <- function(p){
-  # must be a loopy way to do this
-  p <- add_session_label(p, session1Start, session1End)
-  p <- add_session_label(p, session2Start, session2End)
-  p <- add_session_label(p, session3Start, session3End)
-  p <- add_session_label(p, session4Start, session4End)
-  p <- add_session_label(p, session5Start, session5End)
-  p <- add_session_label(p, session6Start, session6End)
-  p <- add_session_label(p, session7Start, session7End)
-  p <- add_session_label(p, session8Start, session8End)
-  # add new sessions here
+  for(s in savingSessions_dateTimes_DT$ID) {
+    sessionStart <- savingSessions_dateTimes_DT[ID == s, start_hh]
+    #print(sessionStart)
+    sessionEnd <- savingSessions_dateTimes_DT[ID == s, end_hh]
+    #print(sessionEnd)
+    p <- add_session_label(p, sessionStart, sessionEnd)
+  }
   return(p)
 }
 
@@ -425,10 +397,14 @@ p <- ggplot2::ggplot(plotDT, aes(x = Time, y = cumSum)) +
        caption = myCaption)
 
 add_ngeso_session_labels <- function(p){
-  # must be a loopy way to do this
-  p <- add_session_label(p, session7Start, session7End)
-  p <- add_session_label(p, session8Start, session8End)
-  # add new sessions here
+  sessions <- savingSessions_dateTimes_DT[type == "NG-ESO live", ID]
+  for(s in sessions) {
+    sessionStart <- savingSessions_dateTimes_DT[ID == s, start_hh]
+    #print(sessionStart)
+    sessionEnd <- savingSessions_dateTimes_DT[ID == s, end_hh]
+    #print(sessionEnd)
+    p <- add_session_label(p, sessionStart, sessionEnd)
+  }
   return(p)
 }
 
@@ -463,10 +439,25 @@ In each case we report the number of negative and positive codings (according to
 
 Remember the size of the (positive/negative) words in the word cloud is relative to the count of all (positive/negative) words in the wordcloud, not the total word count.
 
-## Session 1 (Octopus: `r pdt(session1Start)`)
 
- * `r session1Start` to
- * `r session1End + 30*60`
+```{r}
+#| label: sessionDates
+#| tbl-cap: "Saving sessions"
+
+makeFlexTable(savingSessions_dateTimes_DT,cap = "default caption")
+```
+
+
+## Session 1 (Octopus: `r pdt(savingSessions_dateTimes_DT[ID == 1, start_hh])`)
+
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 1, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 1, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 1, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
  
 (Not all retailers may have taken part in this one)
 
@@ -484,8 +475,8 @@ The following plot compares GB electricity demand during the *DFS* event with me
 #| label: makePlotSession1
 #| tbl-cap: "MW comparisons"
 #| warning: false
-session1_dt <- ngeso_dt_orig[dv_start >= session1Start & 
-                               dv_start < session1End]
+session1_dt <- ngeso_dt_orig[dv_start >= start_hh & 
+                               dv_start < end_hh]
 
 session1_mean_mw <- mean(session1_dt$GENERATION)
 session1_mean_gw <- session1_mean_mw/1000
@@ -499,7 +490,7 @@ gb_smartMeters <- 14000000
 mean_kW_per_participant <- 108/200
 scaled_GB_smart_meters_GW_pc <- 100*((gb_smartMeters*mean_kW_per_participant)/1000000)/session1_mean_gw
 
-res <- make_comparisonPlot(ngeso_dt_orig, session1Start, session1End)
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
 #res$p # the plot
 res$p
 
@@ -540,7 +531,7 @@ And just to keep in mind the carbon context:
 #| fig-cap: "Comparison of carbon intensity"
 #| warning: false
 
-res <- make_comparisonPlot(ngeso_dt_orig, session1Start, session1End, 
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
                            yVar = "CARBON_INTENSITY",
                            yVarLab = "g CO2/kWh")
 #res$p # the plot
@@ -553,8 +544,8 @@ Turning to hashtags, we only have #savingSessions tweets for this event.
 
 ```{r}
 
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session1Start) & # on the day
-                                 ba_created_at_date <= as.Date(session1End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -605,7 +596,8 @@ makeSentimentCloud <- function(dt, sentiFilter = "positive"){
                              random.order=FALSE, 
                              rot.per=0.35,            
                              colors=brewer.pal(8, "Dark2"))
-  
+  results$dates <- paste0(pdt(min(dt$ba_created_at_date)),
+                      " to ", pdt(max(dt$ba_created_at_date)))
   return(results)
 }
 
@@ -614,6 +606,7 @@ makeSentimentCloud <- function(dt, sentiFilter = "positive"){
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
 
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -641,10 +634,16 @@ knitr::kable(res$nt,
 ```
 
 
-## Session 2 (Octopus: `r pdt(session2Start)`)
+## Session 2 (Octopus: `r pdt(savingSessions_dateTimes_DT[ID == 2, start_hh])`)
 
- * `r session2Start` to
- * `r session2End + 30*60`
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 2, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 2, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 2, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
  
 (Not all retailers may have taken part in this one)
 
@@ -655,7 +654,7 @@ The same caveats about the comparisons apply here...
 #| tbl-cap: "MW comparisons"
 #| warning: false
 
-res <- make_comparisonPlot(ngeso_dt_orig, session2Start, session2End)
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
 res$p # the plot
 
 makeFlexTable(res$wt[, hms:= as.factor(hms)], 
@@ -671,7 +670,7 @@ And just to keep in mind the carbon context:
 #| label: fig-secondSavingSessionsCI
 #| fig-cap: "Comparison of carbon intensity"
 #| warning: false
-res <- make_comparisonPlot(ngeso_dt_orig, session2Start, session2End, 
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
                            yVar = "CARBON_INTENSITY",
                            yVarLab = "g CO2/kWh")
 res$p
@@ -684,8 +683,8 @@ Turning to hashtags, we only have #savingSessions tweets for this event.
 
 ```{r}
 
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session2Start) & # on the day
-                                 ba_created_at_date <= as.Date(session2End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh+1)] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -699,6 +698,7 @@ Number of tweets: `r nrow(sessionTweets)`
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
 
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -725,10 +725,16 @@ knitr::kable(res$nt,
 
 ```
 
-## Session 3 (Octopus: `r pdt(session3Start)`)
+## Session 3 (Octopus: `r pdt(savingSessions_dateTimes_DT[ID == 3, start_hh])`)
 
- * `r session4Start` to
- * `r session4End + 30*60`
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 3, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 3, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 3, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
  
 (Not all retailers may have taken part in this one)
 
@@ -739,7 +745,7 @@ The same caveats about the comparisons apply here...
 #| tbl-cap: "MW comparisons"
 #| warning: false
 
-res <- make_comparisonPlot(ngeso_dt_orig, session3Start, session3End)
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
 res$p # the plot
 
 makeFlexTable(res$wt[, hms:= as.factor(hms)], 
@@ -755,7 +761,7 @@ And just to keep in mind the carbon context:
 #| label: fig-thirdSavingSessionsCI
 #| fig-cap: "Comparison of carbon intensity"
 #| warning: false
-res <- make_comparisonPlot(ngeso_dt_orig, session3Start, session3End, 
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
                            yVar = "CARBON_INTENSITY",
                            yVarLab = "g CO2/kWh")
 res$p
@@ -767,8 +773,8 @@ Turning to hashtags, we only have #savingSessions tweets for this event.
 
 ```{r}
 
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session3Start) & # on the day
-                                 ba_created_at_date <= as.Date(session3End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -781,7 +787,7 @@ Number of tweets: `r nrow(sessionTweets)`
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -808,10 +814,16 @@ knitr::kable(res$nt,
 
 ```
 
-## Session 4 (Octopus: `r pdt(session4Start)`)
+## Session 4 (Octopus: `r pdt(savingSessions_dateTimes_DT[ID == 4, start_hh])`)
 
- * `r session4Start` to
- * `r session4End + 30*60`
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 4, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 4, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 4, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
  
 (Not all retailers may have taken part in this one)
 
@@ -822,7 +834,7 @@ The same caveats about the comparisons apply here...
 #| tbl-cap: "MW comparisons"
 #| warning: false
 
-res <- make_comparisonPlot(ngeso_dt_orig, session4Start, session4End)
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
 res$p # the plot
 
 makeFlexTable(res$wt[, hms:= as.factor(hms)], 
@@ -838,7 +850,7 @@ And just to keep in mind the carbon context:
 #| label: fig-fourthSavingSessionsCI
 #| fig-cap: "Comparison of carbon intensity"
 #| warning: false
-res <- make_comparisonPlot(ngeso_dt_orig, session4Start, session4End, 
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
                            yVar = "CARBON_INTENSITY",
                            yVarLab = "g CO2/kWh")
 res$p
@@ -850,8 +862,8 @@ Turning to hashtags, we only have #savingSessions tweets for this event.
 
 ```{r}
 
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session4Start) & # on the day
-                                 ba_created_at_date <= as.Date(session4End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -864,7 +876,7 @@ Number of tweets: `r nrow(sessionTweets)`
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -891,10 +903,16 @@ knitr::kable(res$nt,
 
 ```
 
-## Session 5 (Octopus: `r pdt(session5Start)`)
+## Session 5 (Octopus: `r pdt(savingSessions_dateTimes_DT[ID == 5, start_hh])`)
 
- * `r session5Start` to
- * `r session5End + 30*60`
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 5, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 5, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 5, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
  
 (Not all retailers may have taken part in this one)
 
@@ -905,7 +923,7 @@ The same caveats about the comparisons apply here...
 #| tbl-cap: "MW comparisons"
 #| warning: false
 
-res <- make_comparisonPlot(ngeso_dt_orig, session5Start, session5End)
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
 res$p # the plot
 
 makeFlexTable(res$wt[, hms:= as.factor(hms)], 
@@ -922,7 +940,7 @@ And just to keep in mind the carbon context:
 #| fig-cap: "Comparison of carbon intensity"
 #| warning: false
 
-res <- make_comparisonPlot(ngeso_dt_orig, session5Start, session5End, 
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
                            yVar = "CARBON_INTENSITY",
                            yVarLab = "g CO2/kWh")
 res$p
@@ -937,8 +955,8 @@ Turning to hashtags, we only have #savingSessions tweets for this event.
 
 ```{r}
 
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session5Start) & # on the day
-                                 ba_created_at_date <= as.Date(session5End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -951,7 +969,7 @@ Number of tweets: `r nrow(sessionTweets)`
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -978,10 +996,16 @@ knitr::kable(res$nt,
 
 ```
 
-## Session 6 (Octopus: `r pdt(session6Start)`)
+## Session 6 (Octopus: `r pdt(savingSessions_dateTimes_DT[ID == 6, start_hh])`)
 
- * `r session6Start` to
- * `r session6End + 30*60`
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 6, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 6, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 6, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
  
 (Not all retailers may have taken part in this one)
 
@@ -992,7 +1016,7 @@ The same caveats about the comparisons apply here...
 #| tbl-cap: "MW comparisons"
 #| warning: false
 
-res <- make_comparisonPlot(ngeso_dt_orig, session6Start, session6End)
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
 res$p # the plot
 
 makeFlexTable(res$wt[, hms:= as.factor(hms)], 
@@ -1008,7 +1032,7 @@ And just to keep in mind the carbon context:
 #| label: fig-sixthSavingSessionsCI
 #| fig-cap: "Comparison of carbon intensity"
 #| warning: false
-res <- make_comparisonPlot(ngeso_dt_orig, session6Start, session6End, 
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
                            yVar = "CARBON_INTENSITY",
                            yVarLab = "g CO2/kWh")
 res$p
@@ -1022,8 +1046,8 @@ Turning to hashtags, we only have #savingSessions tweets for this event.
 
 ```{r}
 
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session6Start) & # on the day
-                                 ba_created_at_date <= as.Date(session6End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -1033,13 +1057,13 @@ Number of tweets: `r nrow(sessionTweets)`
 ```{r}
 #| warning: true
 
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session6Start) & # on the day
-                                 ba_created_at_date <= as.Date(session6End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -1066,12 +1090,18 @@ knitr::kable(res$nt,
 
 ```
 
-## Session 7 (NG-ESO 'live': `r pdt(session7Start)`)
+## Session 7 (NG-ESO 'live': `r pdt(savingSessions_dateTimes_DT[ID == 7, start_hh])`)
 
-This was a more [generalised call](https://www.bbc.co.uk/news/business-64367504) for *DFS*:
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 7, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 7, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 7, end_hh] + 30*60
+```
 
- * `r session7Start` to
- * `r session7End + 30*60`
+ * `r start_hh` to
+ * `r actualEnd`
+
+This was a more [generalised call](https://www.bbc.co.uk/news/business-64367504) for *DFS*
 
 The same caveats about the comparisons apply here...
 
@@ -1081,8 +1111,8 @@ The same caveats about the comparisons apply here...
 #| #| warning: false
 
 # catch if data not yet available
-if(as.Date(session7Start) < Sys.Date()){
-  res <- make_comparisonPlot(ngeso_dt_orig, session7Start, session7End)
+if(as.Date(start_hh) < Sys.Date()){
+  res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
   print(res$p) # the plot
   
   makeFlexTable(res$wt[, hms:= as.factor(hms)], 
@@ -1102,8 +1132,8 @@ And just to keep in mind the carbon context:
 #| label: fig-seventhSavingSessionsCI
 #| fig-cap: "Comparison of carbon intensity"
 #| warning: false
-if(as.Date(session7Start) < Sys.Date()){
-res <- make_comparisonPlot(ngeso_dt_orig, session7Start, session7End, 
+if(as.Date(start_hh) < Sys.Date()){
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
                            yVar = "CARBON_INTENSITY",
                            yVarLab = "g CO2/kWh")
 res$p
@@ -1119,8 +1149,8 @@ Turning to hashtags, we have both #savingSessions and #demandFlexibilityService 
 
 ```{r}
 
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session7Start) & # on the day
-                                 ba_created_at_date <= as.Date(session7End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -1133,7 +1163,7 @@ Number of tweets: `r nrow(sessionTweets)`
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -1164,8 +1194,8 @@ knitr::kable(res$nt,
 ### #demandFlexibilityService tweets
 
 ```{r}
-sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(session7Start) & # on the day
-                                 ba_created_at_date <= as.Date(session7End)+1] # day plus 1
+sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -1175,12 +1205,10 @@ Number of tweets: `r nrow(sessionTweets)`
 ```{r}
 #| warning: true
 
-
-
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -1208,12 +1236,18 @@ knitr::kable(res$nt,
 ```
 
 
-## Session 8 (NG-ESO 'live': `r pdt(session8Start)`)
+## Session 8 (NG-ESO 'live': `r pdt(savingSessions_dateTimes_DT[ID == 8, start_hh])`)
+
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 8, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 8, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 8, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
 
 This was another [generalised call](https://www.bbc.co.uk/news/business-64372264) for *DFS*:
-
- * `r session8Start` to
- * `r session8End + 30*60`
 
 The same caveats about the comparisons apply here...
 
@@ -1224,8 +1258,8 @@ Also this event followed very soon after the last one so this will affect the co
 #| tbl-cap: "MW comparisons"
 
 # catch if data not yet available
-if(as.Date(session8Start) < Sys.Date()){
-  res <- make_comparisonPlot(ngeso_dt_orig, session8Start, session8End)
+if(as.Date(start_hh) < Sys.Date()){
+  res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
   print(res$p) # the plot
   
   makeFlexTable(res$wt[, hms:= as.factor(hms)], 
@@ -1245,8 +1279,8 @@ And just to keep in mind the carbon context:
 #| label: fig-eighthSavingSessionsCI
 #| fig-cap: "Comparison of carbon intensity"
 
-if(as.Date(session8Start) < Sys.Date()){
-res <- make_comparisonPlot(ngeso_dt_orig, session8Start, session8End, 
+if(as.Date(start_hh) < Sys.Date()){
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
                            yVar = "CARBON_INTENSITY",
                            yVarLab = "g CO2/kWh")
 res$p
@@ -1260,8 +1294,8 @@ Turning to hashtags, we have both #savingSessions and #demandFlexibilityService 
 ### #savingSessions tweets
 
 ```{r}
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session8Start) & # on the day
-                                 ba_created_at_date <= as.Date(session8End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(start_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -1271,13 +1305,10 @@ Number of tweets: `r nrow(sessionTweets)`
 ```{r}
 #| warning: true
 
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session8Start) & # on the day
-                                 ba_created_at_date <= as.Date(session8End)+1] # day plus 1
-
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -1308,8 +1339,8 @@ knitr::kable(res$nt,
 ### #demandFlexibilityService tweets
 
 ```{r}
-sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(session8Start) & # on the day
-                                 ba_created_at_date <= as.Date(session8End)+1] # day plus 1
+sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -1319,13 +1350,10 @@ Number of tweets: `r nrow(sessionTweets)`
 ```{r}
 #| warning: true
 
-sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(session8Start) & # on the day
-                                 ba_created_at_date <= as.Date(session8End)+1] # day plus 1
-
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -1354,10 +1382,16 @@ knitr::kable(res$nt,
 
 
 
-## Session 9 (Octopus: `r pdt(session9Start)`)
+## Session 9 (Octopus: `r pdt(savingSessions_dateTimes_DT[ID == 9, start_hh])`)
 
- * `r session9Start` to
- * `r session9End + 30*60`
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 9, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 9, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 9, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
 
 The same caveats about the comparisons apply here...
 
@@ -1366,8 +1400,8 @@ The same caveats about the comparisons apply here...
 #| tbl-cap: "MW comparisons"
 
 # catch if data not yet available
-if(as.Date(session9Start) < Sys.Date()){
-  res <- make_comparisonPlot(ngeso_dt_orig, session9Start, session9End)
+if(as.Date(start_hh) < Sys.Date()){
+  res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
   print(res$p) # the plot
   
   makeFlexTable(res$wt[, hms:= as.factor(hms)], 
@@ -1387,8 +1421,8 @@ And just to keep in mind the carbon context:
 #| label: fig-ninthSavingSessionsCI
 #| fig-cap: "Comparison of carbon intensity"
 
-if(as.Date(session9Start) < Sys.Date()){
-res <- make_comparisonPlot(ngeso_dt_orig, session9Start, session9End, 
+if(as.Date(start_hh) < Sys.Date()){
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
                            yVar = "CARBON_INTENSITY",
                            yVarLab = "g CO2/kWh")
 res$p
@@ -1402,8 +1436,8 @@ Turning to hashtags, we have both #savingSessions and #demandFlexibilityService 
 ### #savingSessions tweets
 
 ```{r}
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session9Start) & # on the day
-                                 ba_created_at_date <= as.Date(session9End)+1] # day plus 1
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -1412,14 +1446,10 @@ Number of tweets: `r nrow(sessionTweets)`
 
 ```{r}
 #| warning: true
-
-sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(session9Start) & # on the day
-                                 ba_created_at_date <= as.Date(session9End)+1] # day plus 1
-
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -1449,11 +1479,11 @@ knitr::kable(res$nt,
 
 ### #demandFlexibilityService tweets
 
-Unlikely to be many of these as this ws not a system-wide NG-ESO 'live' event.
+Unlikely to be many of these as this was not a system-wide NG-ESO 'live' event.
 
 ```{r}
-sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(session9Start) & # on the day
-                                 ba_created_at_date <= as.Date(session9End)+1] # day plus 1
+sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(start_hh)+1] # day plus 1
 ```
 
 Number of tweets: `r nrow(sessionTweets)`
@@ -1463,13 +1493,10 @@ Number of tweets: `r nrow(sessionTweets)`
 ```{r}
 #| warning: true
 
-sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(session9Start) & # on the day
-                                 ba_created_at_date <= as.Date(session9End)+1] # day plus 1
-
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "positive")
-
+message("\nTweets from ", res$dates)
 ```
 
 *Negative words...*
@@ -1479,6 +1506,151 @@ res <- makeSentimentCloud(sessionTweets,
 
 res <- makeSentimentCloud(sessionTweets, 
                    sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
+
+
+## Session 10 (Octopus: `r pdt(savingSessions_dateTimes_DT[ID == 10, start_hh])`)
+
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 10, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 10, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 10, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| label: session_10
+#| tbl-cap: "MW comparisons"
+#| fig-cap: "MW comparisons"
+#| 
+# catch if data not yet available
+if(as.Date(start_hh) < Sys.Date()){
+  res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
+  print(res$p) # the plot
+  
+  makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+                cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+                digits = 1) # the table
+} else {
+  message("Data not yet available, try later :-(")
+}
+
+```
+
+### Carbon intensity
+
+And just to keep in mind the carbon context:
+
+```{r}
+#| label: fig-tenthSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+
+if(as.Date(start_hh) < Sys.Date()){
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
+                           yVar = "CARBON_INTENSITY",
+                           yVarLab = "g CO2/kWh")
+res$p
+} else {
+  message("Data not yet available, try later :-(")
+}
+```
+
+Turning to hashtags, we have both #savingSessions and #demandFlexibilityService tweets for this event.
+
+### #savingSessions tweets
+
+```{r}
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
+```
+
+Number of tweets: `r nrow(sessionTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "positive")
+message("\nTweets from ", res$dates)
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
+### #demandFlexibilityService tweets
+
+Unlikely to be many of these as this was not a system-wide NG-ESO 'live' event.
+
+```{r}
+sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(start_hh)+1] # day plus 1
+```
+
+Number of tweets: `r nrow(sessionTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+# breaks if no data yet
+# renders plot immediately (not sure why)
+try(res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "positive"))
+message("\nTweets from ", res$dates)
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+# breaks if no data yet
+try(res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative"))
 ```
 
 Total word and unique word counts...
