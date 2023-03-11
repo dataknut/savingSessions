@@ -263,7 +263,10 @@ We keep these datasets distinct as not all Octopus DFS events were also wider NG
 
 We do NOT store the tweets in the repo for both [ethical](https://blogs.lse.ac.uk/impactofsocialsciences/2015/09/28/challenges-of-using-twitter-as-a-data-source-resources/) and practical reasons...
 
-Note also that we may not be collecting the complete dataset of hashtagged tweets due to the [intricacies of the twitter API](https://www.demos.co.uk/files/Road_to_representivity_final.pdf?1441811336).
+Note also that we may not be collecting the complete dataset of hashtagged tweets due to:
+
+ * the [intricacies of the twitter API](https://www.demos.co.uk/files/Road_to_representivity_final.pdf?1441811336).
+ * [changes to the twitter API policy](https://twitter.com/TwitterDev) which may have reduced the availability of tweets from February 2023. It is currentrly unclear whether a [free API access tier](https://developer.twitter.com/en/products/twitter-api) will be available or [per-project academic research access](https://developer.twitter.com/en/products/twitter-api/academic-research) will be required.
 
 It is important to note that both datasets are therefore likely to be partial.
 
@@ -284,7 +287,13 @@ dataPath <- path.expand(paste0(twitterDataPath, "savingSessions/"))
 if(dir.exists(dataPath)){
   ofile <- path.expand(paste0(dataPath, "tw_",now,".csv"))
   tweetsDT <- hashTagR::getTweets(searchString, n = 20000)
-  readr::write_csv(tweetsDT, file = ofile) # data.table breaks here
+  if(nrow(tweetsDT)>0){
+    # only write out a file if there are new tweets to avoid confusing hashTagR::loadTweets later on
+    readr::write_csv(tweetsDT, file = ofile) # data.table breaks here
+  #message("Retrieved ", nrow(tweetsDT), " tweets and saved them to ", ofile)
+  } else {
+    message("No recent tweets found using ", searchString, " - loading previous tweets")
+  }
   #message("Retrieved ", nrow(tweetsDT), " tweets and saved them to ", ofile)
 } else {
   message(dataPath, " not found!")
@@ -369,8 +378,13 @@ dataPath <- path.expand(paste0(twitterDataPath, "demandFlexibilityService/"))
 if(dir.exists(dataPath)){
   ofile <- path.expand(paste0(dataPath, "tw_",now,".csv"))
   tweetsDT <- hashTagR::getTweets(searchString, n = 20000)
-  readr::write_csv(tweetsDT, file = ofile) # data.table breaks here
+  if(nrow(tweetsDT)>0){
+    # only write out a file if there are new tweets to avoid confusing hashTagR::loadTweets later on
+    readr::write_csv(tweetsDT, file = ofile) # data.table breaks here
   #message("Retrieved ", nrow(tweetsDT), " tweets and saved them to ", ofile)
+  } else {
+    message("No recent tweets found using ", searchString, " - loading previous tweets")
+  }
 } else {
   message(dataPath, " not found!")
 }
@@ -379,7 +393,7 @@ if(dir.exists(dataPath)){
 
 tweetsDT <- hashTagR::loadTweets(path = dataPath, 
                                  pattern = "*.csv",
-                                 noisy = FALSE)
+                                 noisy = TRUE)
 
 uniq_demandFlexibilityServiceTweetsDT <- cleanTweets(hashTagR::processTweets(tweetsDT))
 
@@ -1564,6 +1578,150 @@ And just to keep in mind the carbon context:
 
 ```{r}
 #| label: fig-tenthSavingSessionsCI
+#| fig-cap: "Comparison of carbon intensity"
+
+if(as.Date(start_hh) < Sys.Date()){
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
+                           yVar = "CARBON_INTENSITY",
+                           yVarLab = "g CO2/kWh")
+res$p
+} else {
+  message("Data not yet available, try later :-(")
+}
+```
+
+Turning to hashtags, we have both #savingSessions and #demandFlexibilityService tweets for this event.
+
+### #savingSessions tweets
+
+```{r}
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
+```
+
+Number of tweets: `r nrow(sessionTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "positive")
+message("\nTweets from ", res$dates)
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
+### #demandFlexibilityService tweets
+
+Unlikely to be many of these as this was not a system-wide NG-ESO 'live' event.
+
+```{r}
+sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(start_hh)+1] # day plus 1
+```
+
+Number of tweets: `r nrow(sessionTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+# breaks if no data yet
+# renders plot immediately (not sure why)
+try(res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "positive"))
+message("\nTweets from ", res$dates)
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+# breaks if no data yet
+try(res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative"))
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
+
+## Session 11 (Octopus: `r pdt(savingSessions_dateTimes_DT[ID == 11, start_hh])`)
+
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 11, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 11, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 11, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| label: session_11
+#| tbl-cap: "MW comparisons"
+#| fig-cap: "MW comparisons"
+#| 
+# catch if data not yet available
+if(as.Date(start_hh) < Sys.Date()){
+  res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
+  print(res$p) # the plot
+  
+  makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+                cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+                digits = 1) # the table
+} else {
+  message("Data not yet available, try later :-(")
+}
+
+```
+
+### Carbon intensity
+
+And just to keep in mind the carbon context:
+
+```{r}
+#| label: fig-eleventhSavingSessionsCI
 #| fig-cap: "Comparison of carbon intensity"
 
 if(as.Date(start_hh) < Sys.Date()){
