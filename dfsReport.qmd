@@ -270,6 +270,8 @@ Note also that we may not be collecting the complete dataset of hashtagged tweet
 
 It is important to note that both datasets are therefore likely to be partial.
 
+### #savingSessions tweets
+
 @fig-getSavingSessionTweets shows the cumulative number of #savingSession tweets collected and marks the relevant events. Labels are likely to overlap where events are close together.
 
 ```{r}
@@ -359,14 +361,100 @@ ymin <- min(plotDT$cumSum)
 add_all_session_labels(p)
 ```
 
-@fig-getDemandFlexibilityServiceTweets shows the cumulative number of #DemandFlexibilityService tweets collected and marks the relevant events. Labels are likely to overlap where events are close together.
-
-> NB: data collection for this hashtag only started on 23rd January - it looks like twitter's search API does not return tweets more than x days old. People were tweeting this hashtag [earlier than January](https://twitter.com/hashtag/DemandFlexibilityService?src=hashtag_click&f=live)...
 
 ```{r}
-#| label: fig-getDemandFlexibilityServiceTweets
-#| fig-cap: "Cumulative number of #DemandFlexibilityService tweets collected"
-#| warning: FALSE
+
+ssTweets <- uniq_savingSessionTweetsDT # all of them
+```
+
+Number of tweets: `r nrow(ssTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+
+# default cloud = positive
+makeSentimentCloud <- function(dt, sentiFilter = "positive"){
+  # start with the selected tweets
+  # grab the words
+  tweets_words <-  dt %>%
+    dplyr::select(clean_text) %>%
+    tidytext::unnest_tokens(word, clean_text)
+  # count the words
+  words <- tweets_words %>% count(word, sort=TRUE)
+  # remove the stop words
+  data(stop_words)
+  
+  # remove the stop words - they are usually the most frequent
+  # and usually the least interesting
+  de_stopped <- words %>%
+    dplyr::anti_join(stop_words)
+  
+  bsc <- de_stopped %>%
+    dplyr::inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
+    #count(linenumber, sentiment, sort = TRUE) %>%
+    ungroup()
+  
+  results <- list()
+  results$ft <- table(bsc$sentiment)
+  
+  results$nt <- bsc %>%
+    group_by(sentiment) %>%
+    summarize(freq=sum(n))
+  
+  # select the sentiment to wordCloud
+  filtered <- bsc %>%
+    dplyr::filter(sentiment == sentiFilter) # why not working?
+  
+  set.seed(1234) # for reproducibility
+  # seems to get rendered immediately, why?
+  wordcloud::wordcloud(words = filtered$word, 
+                             freq = filtered$n, min.freq = 1,           
+                             max.words=200, 
+                             random.order=FALSE, 
+                             rot.per=0.35,            
+                             colors=brewer.pal(8, "Dark2"))
+  results$dates <- paste0(pdt(min(dt$ba_created_at_date)),
+                      " to ", pdt(max(dt$ba_created_at_date)))
+  return(results)
+}
+
+
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(ssTweets, 
+                   sentiFilter = "positive")
+
+message("\nTweets from ", res$dates)
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(ssTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+### #demandFlexibilityService tweets
+
+```{r}
 
 hashtags <- c("DemandFlexibilityService") # fairly sure it's case insensitive
 searchString <- hashTagR::createSearchFromTags(hashtags) # convert to rtweet search string
@@ -396,6 +484,57 @@ tweetsDT <- hashTagR::loadTweets(path = dataPath,
                                  noisy = TRUE)
 
 uniq_demandFlexibilityServiceTweetsDT <- cleanTweets(hashTagR::processTweets(tweetsDT))
+
+dfsTweets <- uniq_demandFlexibilityServiceTweetsDT # all
+```
+
+Number of tweets: `r nrow(dfsTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(dfsTweets, 
+                   sentiFilter = "positive")
+message("\nTweets from ", res$dates)
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(dfsTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
+
+@fig-getDemandFlexibilityServiceTweets shows the cumulative number of #DemandFlexibilityService tweets collected and marks the relevant events. Labels are likely to overlap where events are close together.
+
+> NB: data collection for this hashtag only started on 23rd January - it looks like twitter's search API does not return tweets more than x days old. People were tweeting this hashtag [earlier than January](https://twitter.com/hashtag/DemandFlexibilityService?src=hashtag_click&f=live)...
+
+```{r}
+#| label: fig-getDemandFlexibilityServiceTweets
+#| fig-cap: "Cumulative number of #DemandFlexibilityService tweets collected"
+#| warning: FALSE
 
 plotDT <- uniq_demandFlexibilityServiceTweetsDT[, .(nObs = .N), 
                                                 keyby = .(Time = ba_created_at_dateHour)]
@@ -568,53 +707,6 @@ Number of tweets: `r nrow(sessionTweets)`
 
 ```{r}
 #| warning: true
-
-# default cloud = positive
-makeSentimentCloud <- function(dt, sentiFilter = "positive"){
-  # start with the selected tweets
-  # grab the words
-  tweets_words <-  dt %>%
-    dplyr::select(clean_text) %>%
-    tidytext::unnest_tokens(word, clean_text)
-  # count the words
-  words <- tweets_words %>% count(word, sort=TRUE)
-  # remove the stop words
-  data(stop_words)
-  
-  # remove the stop words - they are usually the most frequent
-  # and usually the least interesting
-  de_stopped <- words %>%
-    dplyr::anti_join(stop_words)
-  
-  bsc <- de_stopped %>%
-    dplyr::inner_join(tidytext::get_sentiments("bing")) %>% # only keeps those with sentiments
-    #count(linenumber, sentiment, sort = TRUE) %>%
-    ungroup()
-  
-  results <- list()
-  results$ft <- table(bsc$sentiment)
-  
-  results$nt <- bsc %>%
-    group_by(sentiment) %>%
-    summarize(freq=sum(n))
-  
-  # select the sentiment to wordCloud
-  filtered <- bsc %>%
-    dplyr::filter(sentiment == sentiFilter) # why not working?
-  
-  set.seed(1234) # for reproducibility
-  # seems to get rendered immediately, why?
-  wordcloud::wordcloud(words = filtered$word, 
-                             freq = filtered$n, min.freq = 1,           
-                             max.words=200, 
-                             random.order=FALSE, 
-                             rot.per=0.35,            
-                             colors=brewer.pal(8, "Dark2"))
-  results$dates <- paste0(pdt(min(dt$ba_created_at_date)),
-                      " to ", pdt(max(dt$ba_created_at_date)))
-  return(results)
-}
-
 
 # renders plot immediately (not sure why)
 res <- makeSentimentCloud(sessionTweets, 
