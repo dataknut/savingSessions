@@ -259,7 +259,7 @@ Use [rtweet](https://docs.ropensci.org/rtweet/) to collect tweets matching:
  * `#savingSession` or `#savingSessions` (not case sensitive) - this seems to be the preferred [Octopus hashtag](https://twitter.com/hashtag/savingSession)
  * `#DemandFlexibilityService` (not case sensitive) - as used by [NG-ESO](https://twitter.com/hashtag/DemandFlexibilityService), appears less frequently used
 
-We keep these datasets distinct as not all Octopus DFS events were also wider NG-ESO 'live' events.
+>We keep these datasets distinct as it was not clear if all Octopus DFS events were also wider NG-ESO 'live' events.
 
 We do NOT store the tweets in the repo for both [ethical](https://blogs.lse.ac.uk/impactofsocialsciences/2015/09/28/challenges-of-using-twitter-as-a-data-source-resources/) and practical reasons...
 
