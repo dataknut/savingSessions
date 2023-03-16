@@ -454,6 +454,10 @@ knitr::kable(res$nt,
 
 ### #demandFlexibilityService tweets
 
+@fig-getDemandFlexibilityServiceTweets shows the cumulative number of #DemandFlexibilityService tweets collected and marks the relevant events. Labels are likely to overlap where events are close together.
+
+> NB: data collection for this hashtag only started on 23rd January - it looks like twitter's search API does not return tweets more than x days old. People were tweeting this hashtag [earlier than January](https://twitter.com/hashtag/DemandFlexibilityService?src=hashtag_click&f=live)...
+
 ```{r}
 
 hashtags <- c("DemandFlexibilityService") # fairly sure it's case insensitive
@@ -489,47 +493,6 @@ dfsTweets <- uniq_demandFlexibilityServiceTweetsDT # all
 ```
 
 Number of tweets: `r nrow(dfsTweets)`
-
-*Positive words...*
-
-```{r}
-#| warning: true
-
-# renders plot immediately (not sure why)
-res <- makeSentimentCloud(dfsTweets, 
-                   sentiFilter = "positive")
-message("\nTweets from ", res$dates)
-```
-
-*Negative words...*
-
-```{r}
-#| warning: true
-
-res <- makeSentimentCloud(dfsTweets, 
-                   sentiFilter = "negative")
-```
-
-Total word and unique word counts...
-
-```{r}
-knitr::kable(res$ft, 
-             caption = paste0("Number of unique words by sentiment")
-             ) %>%
-  kable_styling()
-
-knitr::kable(res$nt, 
-             caption = paste0("Number of words by sentiment")
-             ) %>%
-  kable_styling()
-
-```
-
-
-
-@fig-getDemandFlexibilityServiceTweets shows the cumulative number of #DemandFlexibilityService tweets collected and marks the relevant events. Labels are likely to overlap where events are close together.
-
-> NB: data collection for this hashtag only started on 23rd January - it looks like twitter's search API does not return tweets more than x days old. People were tweeting this hashtag [earlier than January](https://twitter.com/hashtag/DemandFlexibilityService?src=hashtag_click&f=live)...
 
 ```{r}
 #| label: fig-getDemandFlexibilityServiceTweets
@@ -567,6 +530,43 @@ ymax <- max(plotDT$cumSum)
 ymin <- min(plotDT$cumSum)
 add_ngeso_session_labels(p)
 ```
+
+*Positive words...*
+
+```{r}
+#| warning: true
+
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(dfsTweets, 
+                   sentiFilter = "positive")
+message("\nTweets from ", res$dates)
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(dfsTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
 
 # Analysis
 
