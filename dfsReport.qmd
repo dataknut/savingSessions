@@ -266,7 +266,7 @@ We do NOT store the tweets in the repo for both [ethical](https://blogs.lse.ac.u
 Note also that we may not be collecting the complete dataset of hashtagged tweets due to:
 
  * the [intricacies of the twitter API](https://www.demos.co.uk/files/Road_to_representivity_final.pdf?1441811336).
- * [changes to the twitter API policy](https://twitter.com/TwitterDev) which may have reduced the availability of tweets from February 2023. It is currentrly unclear whether a [free API access tier](https://developer.twitter.com/en/products/twitter-api) will be available or [per-project academic research access](https://developer.twitter.com/en/products/twitter-api/academic-research) will be required.
+ * [changes to the twitter API policy](https://twitter.com/TwitterDev) which may have reduced the availability of tweets from February 2023. It is currently unclear whether a [free API access tier](https://developer.twitter.com/en/products/twitter-api) will be available or [per-project academic research access](https://developer.twitter.com/en/products/twitter-api/academic-research) will be required.
 
 It is important to note that both datasets are therefore likely to be partial.
 
@@ -1783,6 +1783,147 @@ knitr::kable(res$nt,
 ### #demandFlexibilityService tweets
 
 Unlikely to be many of these as this was not a system-wide NG-ESO 'live' event.
+
+```{r}
+sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(start_hh)+1] # day plus 1
+```
+
+Number of tweets: `r nrow(sessionTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+# breaks if no data yet
+# renders plot immediately (not sure why)
+try(res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "positive"))
+message("\nTweets from ", res$dates)
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+# breaks if no data yet
+try(res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative"))
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
+
+## Session 12 (NG-ESO 'live' (?): `r pdt(savingSessions_dateTimes_DT[ID == 12, start_hh])`)
+
+```{r}
+start_hh <- savingSessions_dateTimes_DT[ID == 12, start_hh]
+end_hh <- savingSessions_dateTimes_DT[ID == 12, end_hh]
+actualEnd <- savingSessions_dateTimes_DT[ID == 12, end_hh] + 30*60
+```
+
+ * `r start_hh` to
+ * `r actualEnd`
+
+The same caveats about the comparisons apply here...
+
+```{r}
+#| tbl-cap: "MW comparisons"
+#| fig-cap: "MW comparisons"
+#| 
+# catch if data not yet available
+if(as.Date(start_hh) < Sys.Date()){
+  res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh)
+  print(res$p) # the plot
+  
+  makeFlexTable(res$wt[, hms:= as.factor(hms)], 
+                cap = paste0("MW comparisons (hms = half hour period start, number of comparison days = ", res$nCompDays,")"),
+                digits = 1) # the table
+} else {
+  message("Data not yet available, try later :-(")
+}
+
+```
+
+### Carbon intensity
+
+And just to keep in mind the carbon context:
+
+```{r}
+#| fig-cap: "Comparison of carbon intensity"
+
+if(as.Date(start_hh) < Sys.Date()){
+res <- make_comparisonPlot(ngeso_dt_orig, start_hh, end_hh, 
+                           yVar = "CARBON_INTENSITY",
+                           yVarLab = "g CO2/kWh")
+res$p
+} else {
+  message("Data not yet available, try later :-(")
+}
+```
+
+Turning to hashtags, we have both #savingSessions and #demandFlexibilityService tweets for this event.
+
+### #savingSessions tweets
+
+```{r}
+sessionTweets <- uniq_savingSessionTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
+                                 ba_created_at_date <= as.Date(end_hh)+1] # day plus 1
+```
+
+Number of tweets: `r nrow(sessionTweets)`
+
+*Positive words...*
+
+```{r}
+#| warning: true
+# renders plot immediately (not sure why)
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "positive")
+message("\nTweets from ", res$dates)
+```
+
+*Negative words...*
+
+```{r}
+#| warning: true
+
+res <- makeSentimentCloud(sessionTweets, 
+                   sentiFilter = "negative")
+```
+
+Total word and unique word counts...
+
+```{r}
+knitr::kable(res$ft, 
+             caption = paste0("Number of unique words by sentiment")
+             ) %>%
+  kable_styling()
+
+knitr::kable(res$nt, 
+             caption = paste0("Number of words by sentiment")
+             ) %>%
+  kable_styling()
+
+```
+
+
+### #demandFlexibilityService tweets
+
 
 ```{r}
 sessionTweets <- uniq_demandFlexibilityServiceTweetsDT[ba_created_at_date >= as.Date(start_hh) & # on the day
