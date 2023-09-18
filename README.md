@@ -6,9 +6,13 @@ Best viewed at [https://dataknut.github.io/savingSessions](https://dataknut.gith
 
 ## Integrated anlaysis
 
+> No longer updated after Twitter search API closed to free use
+
  * integrated [electricity demand and twitter analysis](dfsReport.html)
  
 ## Tweet analysis:
+
+> No longer updated after Twitter search API closed to free use
 
 No longer updated - see integrated [electricity demand and twitter analysis](dfsReport.html)
 
